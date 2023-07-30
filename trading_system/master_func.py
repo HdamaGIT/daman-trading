@@ -245,7 +245,7 @@ def main_func(version, start_time,
             df = pd.DataFrame.from_dict(results)
             print('Process: Backtest Complete.')
 
-            data, final_value, compare_hold_val, strategy_max_drawdown, asset_max_drawdown = strategy_development_backtest_analyse.analyse_backtest(df, cash, version, printlog=True)
+            data, final_value, compare_hold_val, strategy_max_drawdown, asset_max_drawdown = analyse_backtest(df, cash, version, printlog=True)
 
             save_data(data, filepath, filename_backtest, index=False)
             database = Database(data, db, filename_backtest)
@@ -268,7 +268,7 @@ def main_func(version, start_time,
             data = pd.read_csv(filepath + filename_analysis + '.csv')
             data = backtest.backtest(data, close, cash, fee, slippage, startdate_forwards, enddate_forwards)
             print('Process: Forwards Test Complete.')
-            data, final_value, compare_hold_val, strategy_max_drawdown, asset_max_drawdown = backtest.analyse_backtest(data, cash, version, printlog=True)
+            data, final_value, compare_hold_val, strategy_max_drawdown, asset_max_drawdown = analyse_backtest(data, cash, version, printlog=True)
             save_data(data, filepath, filename_backtest, index=False)
             time_elapsed = datetime.now() - start_time
             print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
