@@ -34,20 +34,3 @@ class Finviz:
 
 
 #########################################################################################
-
-
-# def selection(self):
-#     self.tickers = self.df[self.df['Sector'] == f'Basic Materials']['Ticker']
-#     print(self.tickers)
-
-# fvaluation = Valuation()
-# fvaluation.set_filter(filters_dict=filters_dict)
-
-# df = fvaluation.screener_view()
-# print(df.head())
-
-# from finvizfinance.news import News
-# fnews = News()
-# all_news = fnews.get_news()
-# print(all_news['news'].head())
-# # all_news['blogs'].head()
