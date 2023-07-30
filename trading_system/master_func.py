@@ -4,19 +4,19 @@
 
 import pandas as pd
 from datetime import datetime, timedelta, date
-from trading_ig_config import config
 
-from functions.manage_IG import IGConnection
-from functions.database_copysave import Database
-from functions.strategy_development_finviz import Finviz
-from functions.strategy_development_yahoo_historic_data import HistoricPriceData
-from functions.strategy_development_indicators import TAIndicators
-from functions.strategy_development_meanreversion import MeanReversion
-from functions.strategy_development_trading_strategy import TradeAllocation
-from functions.strategy_development_backtest import Backtest
-from functions import strategy_development_backtest_analyse
-from functions.strategy_development_monte_carlo import MonteCarlo
-from functions.save_data import save_data
+
+from src.data_collect.finviz import Finviz
+from src.data_collect.yahoo_historic_data import HistoricPriceData
+from src.indicator_calculation.indicators import TAIndicators
+from src.trading_strategies.meanreversion import MeanReversion
+from src.trading_strategies.strategy import TradeAllocation
+from src.backtesting.backtest import Backtest
+from src.backtesting.backtest_analyse import analyse_backtest, plot_backtest
+from src.backtesting.monte_carlo import MonteCarlo
+from src.database_management.save_data import save_data
+from src.database_management.database_copysave import Database
+
 
 def main_func(version, start_time,
               db, filepath, filename_historic, filename_analysis, filename_mr, filename_strategy, filename_backtest, filename_montecarlo,
@@ -254,7 +254,7 @@ def main_func(version, start_time,
             time_elapsed = datetime.now() - start_time
             print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
 
-            strategy_development_backtest_analyse.plot_backtest(data)
+            plot_backtest(data)
 
         except Exception as e:
             # Handle exceptions and edge cases
