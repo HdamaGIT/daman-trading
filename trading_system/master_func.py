@@ -6,8 +6,8 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 
 from src.data_collect.finviz import Finviz
-# from src.data_collect.yahoo_historic_data import HistoricPriceData
-#
+from src.data_collect.yahoo_historic_data import HistoricPriceData
+
 # from src.indicator_calculation.indicators import TAIndicators
 #
 # from src.trading_strategies.meanreversion import MeanReversion
@@ -81,107 +81,107 @@ def master(input_vars,
 
     #########################################################################################
 
-    # if yahoo_extract:
-    #     try:
-    #         ### Choose which stock universe to use
-    #         # Create a database object
-    #         database = Database(None, db, 'finviz_tickers')
-    #         # Read the 'stock_prices' table and create a DataFrame
-    #         database.read_table()
-    #         # yahoo_tickers = database.df
-    #
-    #         # cryptocurrencies = ['BTC-USD']
-    #         # yahoo_tickers = pd.DataFrame(cryptocurrencies, columns=['ticker'])
-    #
-    #         target = tickers
-    #         yahoo_tickers = pd.DataFrame(target, columns=['ticker'])
-    #
-    #         df_hist = pd.DataFrame
-    #
-    #         if interval == '1m':
-    #             delta = timedelta(days=7)
-    #
-    #             while start < end:
-    #                 t_start = start
-    #                 t_end = start + delta - timedelta(days=1)
-    #                 if t_end > end:
-    #                     t_end = end
-    #
-    #                 print(f"data extract between: {t_start} and {t_end}")
-    #                 yh = HistoricPriceData(yahoo_tickers, t_start, t_end, interval, limit_sector=False, sector='Technology')
-    #                 yh.fetch_data()
-    #
-    #                 if df_hist.empty:
-    #                     df_hist = yh.data
-    #                 else:
-    #                     df_hist = pd.concat([df_hist, yh.data], ignore_index=True)
-    #
-    #                 start += delta
-    #
-    #             df_hist = df_hist.sort_values(by=['ticker', 'dt'])
-    #
-    #             save_data(df_hist, filepath, filename_historic + '_' + interval, False)
-    #             db = Database(df_hist, db, filename_historic + '_' + interval)
-    #             db.save_historic_yahoo()
-    #
-    #         elif interval == '1h':
-    #             delta = timedelta(days=60)
-    #
-    #             while start < end:
-    #                 t_start = start
-    #                 t_end = start + delta - timedelta(days=1)
-    #                 if t_end > end:
-    #                     t_end = end
-    #
-    #                 print(f"data extract between: {t_start} and {t_end}")
-    #                 yh = HistoricPriceData(yahoo_tickers, t_start, t_end, interval, limit_sector=False, sector='Technology')
-    #                 yh.fetch_data()
-    #
-    #                 if df_hist.empty:
-    #                     df_hist = yh.data
-    #                 else:
-    #                     df_hist = pd.concat([df_hist, yh.data], ignore_index=True)
-    #
-    #                 start += delta
-    #
-    #             df_hist = df_hist.sort_values(by=['ticker', 'dt'])
-    #
-    #             save_data(df_hist, filepath, filename_historic + '_' + interval, False)
-    #             db = Database(df_hist, db, filename_historic + '_' + interval)
-    #             db.save_historic_yahoo()
-    #
-    #         elif interval == '1d':
-    #             delta = timedelta(days=500)
-    #
-    #             while start < end:
-    #                 t_start = start
-    #                 t_end = start + delta - timedelta(days=1)
-    #                 if t_end > end:
-    #                     t_end = end
-    #
-    #                 print(f"data extract between: {t_start} and {t_end}")
-    #                 yh = HistoricPriceData(yahoo_tickers, t_start, t_end, interval, limit_sector=False, sector='Technology')
-    #                 yh.fetch_data()
-    #
-    #                 if df_hist.empty:
-    #                     df_hist = yh.data
-    #                 else:
-    #                     df_hist = pd.concat([df_hist, yh.data], ignore_index=True)
-    #
-    #                 start += delta
-    #
-    #             df_hist = df_hist.sort_values(by=['ticker', 'dt'])
-    #
-    #             save_data(df_hist, filepath, filename_historic + '_' + interval, False)
-    #             db = Database(df_hist, db, filename_historic + '_' + interval)
-    #             db.save_historic_yahoo()
-    #
-    #     except Exception as e:
-    #         # Handle exceptions and edge cases
-    #         print(f"Error extracting data from Yahoo Finance: {e}")
-    #         return
-    #
-    # #########################################################################################
+    if yahoo_extract:
+        try:
+            ### Choose which stock universe to use
+            # Create a database object
+            database = Database(None, db, 'finviz_tickers')
+            # Read the 'stock_prices' table and create a DataFrame
+            database.read_table()
+            # yahoo_tickers = database.df
+
+            # cryptocurrencies = ['BTC-USD']
+            # yahoo_tickers = pd.DataFrame(cryptocurrencies, columns=['ticker'])
+
+            target = tickers
+            yahoo_tickers = pd.DataFrame(target, columns=['ticker'])
+
+            df_hist = pd.DataFrame
+
+            if interval == '1m':
+                delta = timedelta(days=7)
+
+                while start < end:
+                    t_start = start
+                    t_end = start + delta - timedelta(days=1)
+                    if t_end > end:
+                        t_end = end
+
+                    print(f"data extract between: {t_start} and {t_end}")
+                    yh = HistoricPriceData(yahoo_tickers, t_start, t_end, interval, limit_sector=False, sector='Technology')
+                    yh.fetch_data()
+
+                    if df_hist.empty:
+                        df_hist = yh.data
+                    else:
+                        df_hist = pd.concat([df_hist, yh.data], ignore_index=True)
+
+                    start += delta
+
+                df_hist = df_hist.sort_values(by=['ticker', 'dt'])
+
+                save_data(df_hist, filepath, filename_historic + '_' + interval, False)
+                db = Database(df_hist, db, filename_historic + '_' + interval)
+                db.save_historic_yahoo()
+
+            elif interval == '1h':
+                delta = timedelta(days=60)
+
+                while start < end:
+                    t_start = start
+                    t_end = start + delta - timedelta(days=1)
+                    if t_end > end:
+                        t_end = end
+
+                    print(f"data extract between: {t_start} and {t_end}")
+                    yh = HistoricPriceData(yahoo_tickers, t_start, t_end, interval, limit_sector=False, sector='Technology')
+                    yh.fetch_data()
+
+                    if df_hist.empty:
+                        df_hist = yh.data
+                    else:
+                        df_hist = pd.concat([df_hist, yh.data], ignore_index=True)
+
+                    start += delta
+
+                df_hist = df_hist.sort_values(by=['ticker', 'dt'])
+
+                save_data(df_hist, filepath, filename_historic + '_' + interval, False)
+                db = Database(df_hist, db, filename_historic + '_' + interval)
+                db.save_historic_yahoo()
+
+            elif interval == '1d':
+                delta = timedelta(days=500)
+
+                while start < end:
+                    t_start = start
+                    t_end = start + delta - timedelta(days=1)
+                    if t_end > end:
+                        t_end = end
+
+                    print(f"data extract between: {t_start} and {t_end}")
+                    yh = HistoricPriceData(yahoo_tickers, t_start, t_end, interval, limit_sector=False, sector='Technology')
+                    yh.fetch_data()
+
+                    if df_hist.empty:
+                        df_hist = yh.data
+                    else:
+                        df_hist = pd.concat([df_hist, yh.data], ignore_index=True)
+
+                    start += delta
+
+                df_hist = df_hist.sort_values(by=['ticker', 'dt'])
+
+                save_data(df_hist, filepath, filename_historic + '_' + interval, False)
+                db = Database(df_hist, db, filename_historic + '_' + interval)
+                db.save_historic_yahoo()
+
+        except Exception as e:
+            # Handle exceptions and edge cases
+            print(f"Error extracting data from Yahoo Finance: {e}")
+            return
+
+    #########################################################################################
     #
     # # Indicators, Signals, Trading Strategy, Allocation
     # if data_prep:
