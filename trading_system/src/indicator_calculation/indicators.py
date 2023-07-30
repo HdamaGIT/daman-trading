@@ -7,26 +7,26 @@ import pandas as pd
 #########################################################################################
 #########################################################################################
 
-
-# This code is for a class called TAIndicators that is used to calculate some technical indicators for financial data. The calc_TA method calculates a number of technical indicators, including simple moving averages (SMA) and exponential moving averages (EMA). The indicators method creates new columns in the data with signals based on the values of these technical indicators.
-
-# The technical indicators that are calculated include:
-# Simple moving averages: These are a type of statistical measure that is used to smooth out data over a given time period. They are calculated by taking the sum of a set of data points and dividing it by the number of points in the set.
-# Exponential moving averages: These are similar to simple moving averages, but they place more weight on more recent data points. This helps them respond more quickly to changes in the data.
-# Bollinger bands: These are statistical measures that are used to indicate the volatility of a financial asset. They consist of a moving average and two "bands" that are placed a certain number of standard deviations above and below the moving average.
-# Relative strength index (RSI): This is a momentum indicator that is used to measure the strength of a financial asset's price action. It is calculated using the ratio of the asset's average gains over a given time period to its average losses over the same time period.
-# Moving average convergence divergence (MACD): This is a momentum indicator that is used to identify the strength and direction of a trend. It is calculated by subtracting the value of a long-term exponential moving average from a short-term exponential moving average.
-# Stochastic oscillator: This is a momentum indicator that is used to identify potential overbought or oversold conditions in a financial asset. It is calculated using the asset's closing price and its high and low prices over a given time period.
-# Price rate of change (RoC): This is a momentum indicator that is used to measure the percentage change in an asset's price over a given time period.
-# Money flow index (MFI): This is a momentum indicator that is used to measure the flow of money into and out of a financial asset. It is calculated using the asset's price, volume, and high and low prices over a given time period.
-# On balance volume (OBV): This is a volume indicator that is used to measure the flow of money into and out of a financial asset. It is calculated by adding the volume on up days and subtracting the volume on down days.
-
+"""
+    This code is for a class called TAIndicators that is used to calculate some technical indicators for financial data. The calc_TA method calculates a number of technical indicators, including simple moving averages (SMA) and exponential moving averages (EMA). The indicators method creates new columns in the data with signals based on the values of these technical indicators.
+    
+    The technical indicators that are calculated include:
+    Simple moving averages: These are a type of statistical measure that is used to smooth out data over a given time period. They are calculated by taking the sum of a set of data points and dividing it by the number of points in the set.
+    Exponential moving averages: These are similar to simple moving averages, but they place more weight on more recent data points. This helps them respond more quickly to changes in the data.
+    Bollinger bands: These are statistical measures that are used to indicate the volatility of a financial asset. They consist of a moving average and two "bands" that are placed a certain number of standard deviations above and below the moving average.
+    Relative strength index (RSI): This is a momentum indicator that is used to measure the strength of a financial asset's price action. It is calculated using the ratio of the asset's average gains over a given time period to its average losses over the same time period.
+    Moving average convergence divergence (MACD): This is a momentum indicator that is used to identify the strength and direction of a trend. It is calculated by subtracting the value of a long-term exponential moving average from a short-term exponential moving average.
+    Stochastic oscillator: This is a momentum indicator that is used to identify potential overbought or oversold conditions in a financial asset. It is calculated using the asset's closing price and its high and low prices over a given time period.
+    Price rate of change (RoC): This is a momentum indicator that is used to measure the percentage change in an asset's price over a given time period.
+    Money flow index (MFI): This is a momentum indicator that is used to measure the flow of money into and out of a financial asset. It is calculated using the asset's price, volume, and high and low prices over a given time period.
+    On balance volume (OBV): This is a volume indicator that is used to measure the flow of money into and out of a financial asset. It is calculated by adding the volume on up days and subtracting the volume on down days.
+"""
 
 #########################################################################################
 #########################################################################################
 #########################################################################################
 
-# v1.1
+
 class TAIndicators:
     def __init__(self, data, close, high, low, vol, short, long):
         """

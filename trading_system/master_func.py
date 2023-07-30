@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, date
 from src.data_collect.finviz import Finviz
 from src.data_collect.yahoo_historic_data import HistoricPriceData
 
-# from src.indicator_calculation.indicators import TAIndicators
-#
+from src.indicator_calculation.indicators import TAIndicators
+
 # from src.trading_strategies.meanreversion import MeanReversion
 # from src.trading_strategies.strategy import TradeAllocation
 #
@@ -21,7 +21,7 @@ from src.database_management.save_data import save_data
 from src.database_management.database_copysave import Database
 
 
-def master(input_vars,
+def master(input_vars, start_time,
             finviz, yahoo_extract, data_prep, meanreversion, strategy, run_backtest, run_forwardstest, montecarlo):
 
     """
@@ -90,13 +90,13 @@ def master(input_vars,
             database = Database(None, db, 'finviz_tickers')
             # Read the 'stock_prices' table and create a DataFrame
             database.read_table()
-            yahoo_tickers = database.df
+            # yahoo_tickers = database.df
 
             # cryptocurrencies = ['BTC-USD']
             # yahoo_tickers = pd.DataFrame(cryptocurrencies, columns=['ticker'])
 
-            # target = tickers
-            # yahoo_tickers = pd.DataFrame(target, columns=['ticker'])
+            target = tickers
+            yahoo_tickers = pd.DataFrame(target, columns=['ticker'])
 
             df_hist = pd.DataFrame
 
@@ -184,34 +184,34 @@ def master(input_vars,
             return
 
     #########################################################################################
-    #
-    # # Indicators, Signals, Trading Strategy, Allocation
-    # if data_prep:
-    #     try:
-    #         # data = pd.read_csv(filepath + filename_historic + '.csv')
-    #         # Create a database object
-    #         database = Database(None, db, filename_historic + '_' + interval)
-    #         # Read the 'stock_prices' table and create a DataFrame
-    #         database.read_table()
-    #
-    #         ta_indicators = TAIndicators(data=database.df, close=close, high=high, low=low, vol=vol, short=short, long=long)
-    #         results = ta_indicators.run()
-    #         df = pd.DataFrame.from_dict(results)
-    #         print('Process: TA & Indicators  Complete.')
-    #
-    #         save_data(df, filepath, filename_analysis + '_' + interval, False)
-    #         db = Database(df, db, filename_analysis + '_' + interval)
-    #         db.save_dataprep()
-    #
-    #         time_elapsed = datetime.now() - start_time
-    #         print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
-    #
-    #     except Exception as e:
-    #         # Handle exceptions and edge cases
-    #         print(f"Error preparing data for analysis: {e}")
-    #
-    #         return
-    #
+
+    # Indicators, Signals, Trading Strategy, Allocation
+    if data_prep:
+        try:
+            # data = pd.read_csv(filepath + filename_historic + '.csv')
+            # Create a database object
+            database = Database(None, db, filename_historic + '_' + interval)
+            # Read the 'stock_prices' table and create a DataFrame
+            database.read_table()
+
+            ta_indicators = TAIndicators(data=database.df, close=close, high=high, low=low, vol=vol, short=short, long=long)
+            results = ta_indicators.run()
+            df = pd.DataFrame.from_dict(results)
+            print('Process: TA & Indicators  Complete.')
+
+            save_data(df, filepath, filename_analysis + '_' + interval, False)
+            db = Database(df, db, filename_analysis + '_' + interval)
+            db.save_dataprep()
+
+            time_elapsed = datetime.now() - start_time
+            print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
+
+        except Exception as e:
+            # Handle exceptions and edge cases
+            print(f"Error preparing data for analysis: {e}")
+
+            return
+
     # #########################################################################################
     #
     # if meanreversion:
