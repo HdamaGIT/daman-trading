@@ -6,35 +6,6 @@ from datetime import date
 #########################################################################################
 #########################################################################################
 
-"""
-The inputs function is a Python function that defines a set of variables that can be used as inputs in other parts of a project. The function returns a dictionary containing the input variables, which can be accessed by key.
-The variables defined in the inputs function include:
-version: a string representing the version of the algorithm being used.
-db: a string representing the name of a database.
-filepath: a string representing the file path for saving CSV files.
-filename_historic, filename_analysis, filename_backtest, filename_montecarlo: strings representing the names of CSV files for storing historic data, analysis data, backtest data, and Monte Carlo simulation data, respectively.
-tickers: a list of strings representing ticker symbols for financial instruments.
-start, today, end: dates representing the start date, current date, and end date for a period of time.
-epic: a string representing the epic of a financial instrument.
-resolution: a string representing the resolution (e.g., daily, hourly) of data.
-num_points: an integer representing the number of data points.
-close, vol, high, low: strings representing the names of columns in data for the close price, volume, high price, and low price, respectively.
-short, long: integers representing the periods for short-term and long-term moving averages.
-sl, tp: floats representing the stop loss and take profit levels for trades.
-cash: an integer representing the starting cash balance for a backtest.
-fee: a float representing the fee for a trade.
-slippage: a float representing the slippage for a trade.
-startdate_backtest, enddate_backtest: dates representing the start and end dates for a backtest.
-startdate_forwards, enddate_forwards: dates representing the start and end dates for forward testing.
-days: an integer representing the number of days for a Monte Carlo simulation.
-iterations: an integer representing the number of iterations for a Monte Carlo simulation.
-The inputs function can be called from other scripts to get access to these input variables, which can be used as arguments for other functions or for other purposes. This allows you to manage a large number of inputs.
-"""
-
-#########################################################################################
-#########################################################################################
-#########################################################################################
-
 
 def inputs():
     """
