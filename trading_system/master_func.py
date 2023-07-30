@@ -61,6 +61,8 @@ def master(input_vars,
     days = input_vars['days']
     iterations = input_vars['iterations']
 
+    #########################################################################################
+
     if finviz:
         try:
             exchange = 'Any'
@@ -88,13 +90,13 @@ def master(input_vars,
             database = Database(None, db, 'finviz_tickers')
             # Read the 'stock_prices' table and create a DataFrame
             database.read_table()
-            # yahoo_tickers = database.df
+            yahoo_tickers = database.df
 
             # cryptocurrencies = ['BTC-USD']
             # yahoo_tickers = pd.DataFrame(cryptocurrencies, columns=['ticker'])
 
-            target = tickers
-            yahoo_tickers = pd.DataFrame(target, columns=['ticker'])
+            # target = tickers
+            # yahoo_tickers = pd.DataFrame(target, columns=['ticker'])
 
             df_hist = pd.DataFrame
 

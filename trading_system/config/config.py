@@ -102,12 +102,11 @@ def inputs():
 
     ### Yahoo data parameters
     # tickers = ['GME'] # sp500
-    # tickers = ['^GSPC']  # sp500
-    tickers = ['^IXIC'] # NASDAQ
+    tickers = ['^GSPC']  # sp500
+    # tickers = ['^IXIC'] # NASDAQ
 
-    interval = '1h' # 1m, 1h, or 1d
+    interval = '1d' # 1m, 1h, or 1d
     start = date(2022, 1, 1)
-    # end = date(2023, 1, 4)
     today = dt.datetime.now().date()
     end = today
 
