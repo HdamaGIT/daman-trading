@@ -6,45 +6,74 @@ import pandas as pd
 #########################################################################################
 #########################################################################################
 
+MARKET_OPEN = time(10, 30)
+MARKET_OPEN_PLUS_ONE = time(11, 30)
 
 class TradeAllocation:
     """
-    This code defines three functions: signal, allocation, and plot_allocation. The signal function adds two columns to the input dataframe data: trigger and trigger_shift. The trigger column is created by using np.where to set the value to "BUY" if the value in the signal_EMA column is 1, "SELL" if the value in the signal_EMA column is 2, and "999" otherwise. The trigger_shift column is created by shifting the trigger column one time period back.
-    The allocation function adds three columns to the input dataframe data: trade, position, and position_shift. The trade column is created by using np.where to set the value to 1 if the current trigger value is "BUY" and the previous trigger value is not "BUY", to 2 if the current trigger value is "SELL" and the previous trigger value is not "SELL", and to 0 otherwise. The position column is created by using np.where to set the value to "long" if the trigger value is "BUY", "short" if the trigger value is "SELL", and np.nan otherwise. The position_shift column is created by shifting the position column one time period back.
-    The plot_allocation function creates a line plot of the close column from the input dataframe data, with points marked for trades using the trade column. It does this by adding two columns to the input dataframe data: flg_trade_buy and flg_trade_sell. The flg_trade_buy column is created by using np.where to set the value to the corresponding value in the close column if the value in the trade column is 1, and to np.nan otherwise. The flg_trade_sell column is created in a similar manner, using the value in the close column if the value in the trade column is 2. The function then uses the sns.lineplot and sns.scatterplot functions from the seaborn library to create a line plot of the close column and scatter plots for the flg_trade_buy and flg_trade_sell columns, using different marker shapes and colors to distinguish between buy and sell trades. Finally, it uses the ticker.MultipleLocator function to set the x-axis tick marks to be spaced 100 units apart.
+    This class represents a trading strategy that issues long and short signals based on RSI.
+    It has a maximum number of trades it can execute and a trading window in hours.
     """
 
-    def __init__(self, data, close):
-        self.data = data
+    def __init__(self, data, close, max_trades, trade_window):
+        self.data = data.copy()  # create a copy of the data to avoid modifying the original dataframe
+        self.data['date'] = pd.to_datetime(self.data['date'], errors='coerce')  # convert 'date' column to datetime
         self.close = close
+        self.max_trades = max_trades
+        self.trade_window = pd.Timedelta(hours=trade_window)
         self.positions = []
+        self.trade_count = 0
 
     def run(self):
         self.generate_signals()
-        # self.risk_management(2, 5)
+        self.risk_management(2, 5)
+        self.data = self.get_signals()
 
     def generate_signals(self):
+        """
+        Generate long and short signals based on RSI, limiting the number of trades per day.
+        """
+        # Initialize the signal column to 'neutral'
+        self.data['signal'] = 'neutral'
+
+        # Keep track of the current day
+        current_day = None
+
         # Iterate over the DataFrame by index (i.e., row by row)
         for i in range(1, len(self.data) - 1):
+            # Reset trade_count and update current_day if a new day has started
+            if self.data['date'][i].day != current_day:
+                self.trade_count = 0
+                current_day = self.data['date'][i].day
+
             # Define market open time as the first bar of the day (this bar typically represents the first hour of trading)
             is_market_open = pd.to_datetime(self.data['date'][i]).time() == time(10, 30)
             is_next_hour = pd.to_datetime(self.data['date'][i + 1]).time() == time(11, 30)
 
-            if is_market_open and is_next_hour:
+            # If market is open, it's the next hour, and we haven't exceeded the max number of trades
+            if is_market_open and is_next_hour and self.trade_count < self.max_trades:
                 # Define your indicators and conditions for going long or short
                 # For instance, using RSI and Volume as sample indicators:
                 if self.data['rsi'][i] < 30:
                     self.data.loc[i, 'signal'] = 'long'
-
+                    self.trade_count += 1
                 elif self.data['rsi'][i] > 70:
                     self.data.loc[i, 'signal'] = 'short'
+                    self.trade_count += 1
 
-                else:
-                    self.data.loc[i, 'signal'] = 'neutral'
+    def get_signals(self):
+        """
+        Get a DataFrame with only the rows where a trade signal was generated.
+        """
+        # Create a new DataFrame containing only rows where a signal was generated
+        signals_df = self.data[self.data['signal'] != 'neutral'].copy()
+
+        return signals_df
 
     def risk_management(self, stop_loss_level, take_profit_level):
-        # The risk_management method could look something like this:
-        # You'll have to adapt this depending on how you're calculating stop loss and take profit
+        """
+        Set stop loss and take profit levels.
+        """
         for i in range(1, len(self.data)):
             if self.data.loc[i, 'signal'] == 'long':
                 self.data.loc[i, 'StopLoss'] = self.data.loc[i, self.close] - stop_loss_level

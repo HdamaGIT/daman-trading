@@ -51,6 +51,8 @@ def master(input_vars, start_time,
     long = input_vars['long']
     sl = input_vars['sl']
     tp = input_vars['tp']
+    max_trades = input_vars['max_trades']
+    trade_window = input_vars['trade_window']
     cash = input_vars['cash']
     fee = input_vars['fee']
     slippage = input_vars['slippage']
@@ -243,29 +245,31 @@ def master(input_vars, start_time,
     # #########################################################################################
 
     if strategy:
-        #     try:
-        # data = pd.read_csv(filepath + filename_historic + '.csv')
-        # Create a database object
-        database = Database(None, db, filename_analysis + '_' + interval)
-        # Read the 'stock_prices' table and create a DataFrame
-        database.read_table()
+        try:
+            # data = pd.read_csv(filepath + filename_historic + '.csv')
+            # Create a database object
+            database = Database(None, db, filename_analysis + '_' + interval)
+            # Read the 'stock_prices' table and create a DataFrame
+            database.read_table()
 
-        trade_alloc = TradeAllocation(data=database.df, close=close)
-        trade_alloc.run()
-        print('Process: Strategy Complete')
+            trade_alloc = TradeAllocation(data=database.df, close=close, max_trades=max_trades, trade_window=trade_window)
+            trade_alloc.run()
+            print('Process: Strategy Complete')
 
-        save_data(trade_alloc.data, filepath, filename_strategy + '_' + interval, False)
+            save_data(trade_alloc.data, filepath, filename_strategy + '_' + interval, False)
 
-        time_elapsed = datetime.now() - start_time
-        print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
+            time_elapsed = datetime.now() - start_time
+            print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
 
-    # trade_alloc.plot_signals()
+            # trade_alloc.plot_signals()
 
-    # except Exception as e:
-    #     # Handle exceptions and edge cases
-    #     print(f"Error preparing data for analysis: {e}")
-    #
-    #     return
+            return trade_alloc.data
+
+        except Exception as e:
+            # Handle exceptions and edge cases
+            print(f"Error preparing data for analysis: {e}")
+
+            return
 
     # #########################################################################################
     #

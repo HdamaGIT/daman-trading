@@ -77,7 +77,7 @@ def inputs():
     tickers = ['^GSPC']  # sp500
     # tickers = ['^IXIC'] # NASDAQ
 
-    interval = '1d' # 1m, 1h, or 1d
+    interval = '1h' # 1m, 1h, or 1d
     start = date(2022, 1, 1)
     today = dt.datetime.now().date()
     end = today
@@ -97,6 +97,8 @@ def inputs():
     long = 200
     sl = 0.15
     tp = 2
+    max_trades = 1
+    trade_window = 7
 
     ################################################################################
     ################################################################################
@@ -144,6 +146,8 @@ def inputs():
         'long': long,
         'sl': sl,
         'tp': tp,
+        'max_trades': max_trades,
+        'trade_window': trade_window,
         'cash': cash,
         'fee': fee,
         'slippage': slippage,
