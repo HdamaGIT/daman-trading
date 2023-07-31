@@ -12,7 +12,7 @@ from src.indicator_calculation.indicators import TAIndicators
 
 # from src.trading_strategies.meanreversion import MeanReversion
 from src.trading_strategies.strategy import TradeAllocation
-#
+
 # from src.backtesting.backtest import Backtest
 # from src.backtesting.backtest_analyse import analyse_backtest, plot_backtest
 # from src.backtesting.monte_carlo import MonteCarlo
@@ -191,34 +191,11 @@ def master(input_vars, start_time,
             # data = pd.read_csv(filepath + filename_historic + '.csv')
             # Create a database object
             database = Database(None, db, filename_historic + '_' + interval)
-            # Read the 'stock_prices'
-            #     if strategy:
-            #     #     try:
-            #         # data = pd.read_csv(filepath + filename_historic + '.csv')
-            #         # Create a database object
-            #         database = Database(None, db, filename_analysis + '_' + interval)
-            #         # Read the 'stock_prices' table and create a DataFrame
-            #         database.read_table()
-            #
-            #         trade_alloc = TradeAllocation(data=database.df, close=close)
-            #         trade_alloc.run()
-            #         print('Process: Strategy Complete')
-            #
-            #         save_data(trade_alloc.data, filepath, filename_strategy + '_' + interval, False)
-            #
-            #         time_elapsed = datetime.now() - start_time
-            #         print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
-            #
-            #     # trade_alloc.plot_signals()
-            #
-            #         # except Exception as e:
-            #         #     # Handle exceptions and edge cases
-            #         #     print(f"Error preparing data for analysis: {e}")
-            #         #
-            #         #     returntable and create a DataFrame
+            # Read the 'stock_prices' table and create a DataFrame
             database.read_table()
 
-            ta_indicators = TAIndicators(data=database.df, close=close, high=high, low=low, vol=vol, short=short, long=long)
+            ta_indicators = TAIndicators(data=database.df, close=close, high=high, low=low, vol=vol, short=short,
+                                         long=long)
             results = ta_indicators.run()
             df = pd.DataFrame.from_dict(results)
             print('Process: TA & Indicators  Complete.')
@@ -264,6 +241,31 @@ def master(input_vars, start_time,
     #     return
     #
     # #########################################################################################
+
+    if strategy:
+        #     try:
+        # data = pd.read_csv(filepath + filename_historic + '.csv')
+        # Create a database object
+        database = Database(None, db, filename_analysis + '_' + interval)
+        # Read the 'stock_prices' table and create a DataFrame
+        database.read_table()
+
+        trade_alloc = TradeAllocation(data=database.df, close=close)
+        trade_alloc.run()
+        print('Process: Strategy Complete')
+
+        save_data(trade_alloc.data, filepath, filename_strategy + '_' + interval, False)
+
+        time_elapsed = datetime.now() - start_time
+        print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
+
+    # trade_alloc.plot_signals()
+
+    # except Exception as e:
+    #     # Handle exceptions and edge cases
+    #     print(f"Error preparing data for analysis: {e}")
+    #
+    #     return
 
     # #########################################################################################
     #

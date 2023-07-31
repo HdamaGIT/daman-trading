@@ -41,6 +41,7 @@ def inputs():
         fee (float): A float representing the fee for a trade.
         slippage
     """
+
     ################################################################################
 
     ### Algorithm
