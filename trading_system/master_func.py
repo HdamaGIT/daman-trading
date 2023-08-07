@@ -13,7 +13,7 @@ from src.indicator_calculation.indicators import TAIndicators
 # from src.trading_strategies.meanreversion import MeanReversion
 from src.trading_strategies.strategy import TradeAllocation
 
-# from src.backtesting.backtest import Backtest
+from src.backtesting.backtest import Backtest
 # from src.backtesting.backtest_analyse import analyse_backtest, plot_backtest
 # from src.backtesting.monte_carlo import MonteCarlo
 
@@ -272,32 +272,32 @@ def master(input_vars, start_time,
             return
 
     # #########################################################################################
-    #
-    # if run_backtest:
-    #     try:
-    #         data = pd.read_csv(filepath + filename_strategy + '.csv')
-    #
-    #         backtest = Backtest(data, close, cash, fee, slippage, startdate_backtest, enddate_backtest, sl, tp)
-    #         results = backtest.run()
-    #         df = pd.DataFrame.from_dict(results)
-    #         print('Process: Backtest Complete.')
-    #
-    #         data, final_value, compare_hold_val, strategy_max_drawdown, asset_max_drawdown = analyse_backtest(df, cash, version, printlog=True)
-    #
-    #         save_data(data, filepath, filename_backtest, index=False)
-    #         database = Database(data, db, filename_backtest)
-    #         database.save_backtest()
-    #
-    #         time_elapsed = datetime.now() - start_time
-    #         print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
-    #
-    #         plot_backtest(data)
-    #
-    #     except Exception as e:
-    #         # Handle exceptions and edge cases
-    #         print(f"Error running backtest: {e}")
-    #         return
-    #
+
+    if run_backtest:
+        try:
+            data = pd.read_csv(filepath + filename_strategy + '.csv')
+
+            backtest = Backtest(data, close, cash, fee, slippage, startdate_backtest, enddate_backtest, sl, tp)
+            results = backtest.run()
+            df = pd.DataFrame.from_dict(results)
+            print('Process: Backtest Complete.')
+
+            # data, final_value, compare_hold_val, strategy_max_drawdown, asset_max_drawdown = analyse_backtest(df, cash, version, printlog=True)
+            #
+            # save_data(data, filepath, filename_backtest, index=False)
+            # database = Database(data, db, filename_backtest)
+            # database.save_backtest()
+            #
+            # time_elapsed = datetime.now() - start_time
+            # print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
+
+            # plot_backtest(data)
+
+        except Exception as e:
+            # Handle exceptions and edge cases
+            print(f"Error running backtest: {e}")
+            return
+
     # #########################################################################################
     #
     # if run_forwardstest:

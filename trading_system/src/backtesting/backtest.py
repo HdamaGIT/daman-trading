@@ -10,21 +10,6 @@ import numpy as np
 #########################################################################################
 
 
-# The backtest function simulates a trading strategy using historical data. It takes in a data frame containing the data to be used for the backtest, a column name of the data frame that corresponds to the price of the security being traded, as well as various parameters such as the starting cash balance, fee, and slippage for each trade. It returns a dictionary with the results of the backtest.
-# The function first filters the data to only include the dates between the start and end dates of the backtest period. It then initializes several variables, including a cash balance, a holding (the number of securities being held), and a short (the number of securities being sold short). It also initializes several arrays that will be used to store the results of the backtest.
-# The function then iterates over the rows of the data frame and performs the following actions:
-    # It checks if the position at the current row (indicated by the pos variable) is the same as the position at the previous row (indicated by the prevpos variable). If it is, it increments the days variable by 1. If it is not, it sets the hold_period variable to the value of days, resets days to 0, and sets the trade_flg variable to 1.
-    # If trade_flg is 1, the function checks the value of pos to determine whether it is a "long" or "short" position. If it is a "long" position, it calculates the number of securities that can be bought with the available cash and slippage, and adds this number to the holding variable. If it is a "short" position, it calculates the number of securities that can be sold short and adds this number to the short variable.
-    # It then calculates the portfolio value and appends this value, as well as the values of the other variables, to the relevant arrays.
-    # The function then returns a dictionary containing the results of the backtest.
-
-
-
-#########################################################################################
-#########################################################################################
-#########################################################################################
-
-# v1.1
 class Backtest:
     def __init__(self, data, close, cash, fee, slippage, startdate, enddate, sl, tp):
         """
