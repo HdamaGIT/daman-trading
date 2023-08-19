@@ -22,7 +22,7 @@ from src.database_management.database_copysave import Database
 
 
 def master(input_vars, start_time,
-            finviz, yahoo_extract, data_prep, meanreversion, strategy, run_backtest, run_forwardstest, montecarlo):
+            finviz, yahoo_extract, data_prep, meanreversion, strategy, risk_management, run_backtest, run_forwardstest, montecarlo):
 
     """
     Main function for extracting, analyzing, and backtesting financial data.
@@ -180,6 +180,8 @@ def master(input_vars, start_time,
                 db = Database(df_hist, db, filename_historic + '_' + interval)
                 db.save_historic_yahoo()
 
+            return df_hist
+
         except Exception as e:
             # Handle exceptions and edge cases
             print(f"Error extracting data from Yahoo Finance: {e}")
@@ -208,6 +210,8 @@ def master(input_vars, start_time,
 
             time_elapsed = datetime.now() - start_time
             print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
+
+            return df
 
         except Exception as e:
             # Handle exceptions and edge cases
@@ -270,6 +274,18 @@ def master(input_vars, start_time,
             print(f"Error preparing data for analysis: {e}")
 
             return
+
+    # #########################################################################################
+
+    # if risk_management:
+    #         try:
+    #             x
+    #
+    #         except Exception as e:
+    #             # Handle exceptions and edge cases
+    #             print(f"Error preparing data for analysis: {e}")
+    #
+    #             return
 
     # #########################################################################################
 
