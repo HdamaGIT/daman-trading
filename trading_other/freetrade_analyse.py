@@ -407,7 +407,7 @@ rb.run()
 # print("rb.portfolio :")
 # print(f"{rb.portfolios}")
 
-scn = 50000
+scn = 500
 ef = Efficientfrontier(portfolio, portfolio_dict, an.df, rb.portfolios['perc'], scn, False)
 ef.run()
 
