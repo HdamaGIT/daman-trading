@@ -1,0 +1,16 @@
+# Ignore all log files
+*.log
+
+# Ignore the outputs directory
+outputs/
+docs/
+
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.so
+
+# Ignore virtual environment
+venv/
