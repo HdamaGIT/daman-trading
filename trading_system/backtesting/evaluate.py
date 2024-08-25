@@ -1,52 +1,21 @@
 import pandas as pd
 import numpy as np
+from typing import Dict, Any, List
 
-
-def calculate_drawdowns(portfolio_values):
+def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
+             transaction_cost_percentage: float = 0.006) -> Dict[str, Any]:
     """
-    Calculates the maximum drawdown and average drawdown length from a series of portfolio values.
+    Evaluates the performance of the backtesting by calculating key metrics such as Sharpe ratio,
+    profit/loss, and drawdowns.
 
     Parameters:
-    - portfolio_values (list): List of portfolio values.
+    - strategy_output (Dict[str, Any]): The strategy output including backtest details.
+    - risk_free_rate (float): The risk-free rate used for Sharpe ratio calculation.
+    - transaction_cost_percentage (float): The percentage used to calculate transaction costs.
 
     Returns:
-    - max_drawdown (float): The maximum drawdown as a percentage.
-    - average_drawdown_length (int): The average length of drawdowns in terms of the number of trading days.
+    - strategy_output (Dict[str, Any]): Updated with evaluation metrics.
     """
-    # Convert to a pandas Series for convenience
-    series = pd.Series(portfolio_values)
-    # Calculate cumulative max
-    cumulative_max = series.cummax()
-    # Calculate drawdown
-    drawdowns = (series - cumulative_max) / cumulative_max
-
-    max_drawdown = drawdowns.min() * 100  # Convert to percentage
-
-    # Calculate drawdown durations
-    is_in_drawdown = drawdowns < 0
-    drawdown_lengths = []
-    drawdown_length = 0
-    for in_drawdown in is_in_drawdown:
-        if in_drawdown:
-            drawdown_length += 1
-        elif drawdown_length > 0:
-            drawdown_lengths.append(drawdown_length)
-            drawdown_length = 0
-    # Handle ongoing drawdown at the end
-    if drawdown_length > 0:
-        drawdown_lengths.append(drawdown_length)
-
-    average_drawdown_length = np.mean(drawdown_lengths) if drawdown_lengths else 0
-
-    return round(max_drawdown, 2), round(average_drawdown_length, 2)
-
-
-def evaluate(strategy_output, risk_free_rate=0.01, transaction_cost_percentage=0.02):
-    """
-    Appends evaluation metrics of the backtesting results to the strategy_output dictionary,
-    with rounded and formatted values for clearer presentation.
-    """
-
     details = strategy_output['backtest_details']
     portfolio_values = details['portfolio_value']
     trades = details['trades']
@@ -61,7 +30,7 @@ def evaluate(strategy_output, risk_free_rate=0.01, transaction_cost_percentage=0
 
     daily_returns = pd.Series(portfolio_values).pct_change().dropna()
     excess_daily_returns = daily_returns - (risk_free_rate / 252)
-    sharpe_ratio = round(np.sqrt(252) * excess_daily_returns.mean() / excess_daily_returns.std(), 0)
+    sharpe_ratio = round(np.sqrt(252) * excess_daily_returns.mean() / excess_daily_returns.std(), 2)
 
     fees_paid = round(sum(trade['price'] * trade['qty'] * transaction_cost_percentage for trade in trades), 0)
 
@@ -75,37 +44,61 @@ def evaluate(strategy_output, risk_free_rate=0.01, transaction_cost_percentage=0
         'Profit Percentage': f"{profit_percentage}%",
         'Sharpe Ratio': sharpe_ratio,
         'Fees Paid': f"£{fees_paid:,.0f}",
-        'Average Hold Duration': "TBD",
-        'Max Hold Duration': "TBD",
-        'Max Drawdown': "TBD",
-        'Average Drawdown Length': "TBD",
     }
 
     max_drawdown, average_drawdown_length = calculate_drawdowns(portfolio_values)
     evaluation_summary['Max Drawdown'] = f"{max_drawdown}%"
     evaluation_summary['Average Drawdown Length'] = f"{average_drawdown_length} days"
 
-    # Merge hold strategy evaluation
-    evaluation_summary.update(
-        hold_strategy_evaluation(strategy_output, 'BTC-GBP', start_portfolio, transaction_cost_percentage))
-    evaluation_summary.update(
-        hold_strategy_evaluation(strategy_output, 'ETH-GBP', start_portfolio, transaction_cost_percentage))
+    evaluation_summary.update(hold_strategy_evaluation(strategy_output, 'BTC-GBP', start_portfolio, transaction_cost_percentage))
+    evaluation_summary.update(hold_strategy_evaluation(strategy_output, 'ETH-GBP', start_portfolio, transaction_cost_percentage))
 
-    # Append evaluation summary to strategy_output
     strategy_output['evaluation_summary'] = evaluation_summary
 
     return strategy_output
 
-
-def hold_strategy_evaluation(strategy_output, asset_pair, initial_investment, transaction_cost_percentage):
+def calculate_drawdowns(portfolio_values: List[float]) -> (float, float):
     """
-    Formats the hold strategy evaluation with rounded values.
+    Calculates the maximum drawdown and the average drawdown length from portfolio values.
+
+    Parameters:
+    - portfolio_values (List[float]): List of portfolio values over time.
+
+    Returns:
+    - max_drawdown (float): Maximum drawdown percentage.
+    - average_drawdown_length (float): Average duration of drawdowns in days.
+    """
+    series = pd.Series(portfolio_values)
+    cumulative_max = series.cummax()
+    drawdowns = (series - cumulative_max) / cumulative_max
+
+    max_drawdown = drawdowns.min() * 100
+
+    is_in_drawdown = drawdowns < 0
+    drawdown_lengths = is_in_drawdown.astype(int).groupby((is_in_drawdown != is_in_drawdown.shift()).cumsum()).sum()
+    average_drawdown_length = drawdown_lengths.mean()
+
+    return round(max_drawdown, 2), round(average_drawdown_length, 2)
+
+def hold_strategy_evaluation(strategy_output: Dict[str, Any], asset_pair: str,
+                             initial_investment: float, transaction_cost_percentage: float) -> Dict[str, str]:
+    """
+    Evaluates the hold strategy for a specific asset.
+
+    Parameters:
+    - strategy_output (Dict[str, Any]): The strategy output including price data.
+    - asset_pair (str): The asset pair being evaluated.
+    - initial_investment (float): The amount initially invested.
+    - transaction_cost_percentage (float): The transaction cost as a percentage.
+
+    Returns:
+    - evaluation (Dict[str, str]): Evaluation results for the hold strategy.
     """
     prices = strategy_output[asset_pair]['Close']
     buy_cost = initial_investment * transaction_cost_percentage
     final_investment = initial_investment - buy_cost
     final_quantity = final_investment / prices[0]
-    final_value = final_quantity * prices[-1] - (final_quantity * prices[-1] * transaction_cost_percentage)
+    final_value = final_quantity * prices[-1] * (1 - transaction_cost_percentage)
     profit_loss = round(final_value - initial_investment, 0)
     profit_percentage = round((profit_loss / initial_investment) * 100, 0)
 
