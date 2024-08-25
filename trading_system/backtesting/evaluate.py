@@ -2,8 +2,9 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, List
 
+
 def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
-             transaction_cost_percentage: float = 0.006) -> Dict[str, Any]:
+             transaction_cost_percentage: float = 0.012) -> Dict[str, Any]:
     """
     Evaluates the performance of the backtesting by calculating key metrics such as Sharpe ratio,
     profit/loss, and drawdowns.
@@ -11,7 +12,7 @@ def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
     Parameters:
     - strategy_output (Dict[str, Any]): The strategy output including backtest details.
     - risk_free_rate (float): The risk-free rate used for Sharpe ratio calculation.
-    - transaction_cost_percentage (float): The percentage used to calculate transaction costs.
+    - transaction_cost_percentage (float): The decimal percentage (e.g., 0.012 for 1.2%) used to calculate transaction costs.
 
     Returns:
     - strategy_output (Dict[str, Any]): Updated with evaluation metrics.
@@ -32,7 +33,8 @@ def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
     excess_daily_returns = daily_returns - (risk_free_rate / 252)
     sharpe_ratio = round(np.sqrt(252) * excess_daily_returns.mean() / excess_daily_returns.std(), 2)
 
-    fees_paid = round(sum(trade['price'] * trade['qty'] * transaction_cost_percentage for trade in trades), 0)
+    # Calculate the total fees paid during the backtest
+    fees_paid = round(sum(trade['price'] * trade['qty'] * transaction_cost_percentage for trade in trades), 2)
 
     evaluation_summary = {
         'Number of Trading Days': num_trading_days,
@@ -43,7 +45,7 @@ def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
         'Profit/Loss': f"£{profit_loss:,.0f}",
         'Profit Percentage': f"{profit_percentage}%",
         'Sharpe Ratio': sharpe_ratio,
-        'Fees Paid': f"£{fees_paid:,.0f}",
+        'Fees Paid': f"£{fees_paid:,.2f}",
     }
 
     max_drawdown, average_drawdown_length = calculate_drawdowns(portfolio_values)
@@ -56,6 +58,7 @@ def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
     strategy_output['evaluation_summary'] = evaluation_summary
 
     return strategy_output
+
 
 def calculate_drawdowns(portfolio_values: List[float]) -> (float, float):
     """
@@ -79,6 +82,7 @@ def calculate_drawdowns(portfolio_values: List[float]) -> (float, float):
     average_drawdown_length = drawdown_lengths.mean()
 
     return round(max_drawdown, 2), round(average_drawdown_length, 2)
+
 
 def hold_strategy_evaluation(strategy_output: Dict[str, Any], asset_pair: str,
                              initial_investment: float, transaction_cost_percentage: float) -> Dict[str, str]:

@@ -1,16 +1,17 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 
-def backtest(strategy_output: Dict[str, Any], starting_cash: float = 5000, 
-             slippage_percentage: float = 0.05, transaction_cost_percentage: float = 0.02) -> Dict[str, Any]:
+
+def backtest(strategy_output: Dict[str, Any], starting_cash: float = 1000,
+             slippage_percentage: float = 0.00, transaction_cost_percentage: float = 0.012) -> Dict[str, Any]:
     """
-    Simulates trading based on the strategy's output, adjusting for slippage and transaction costs as percentages.
+    Simulates trading based on the strategy's output, adjusting for slippage and transaction costs as decimals.
     Now ensures no unnecessary buy/sell of the same asset on the same day.
 
     Parameters:
     - strategy_output (Dict[str, Any]): Strategy output containing trading signals and price data.
     - starting_cash (float): Initial capital to start with.
-    - slippage_percentage (float): Slippage percentage applied to trades.
-    - transaction_cost_percentage (float): Transaction cost percentage applied to trades.
+    - slippage_percentage (float): Slippage applied to trades as a decimal (e.g., 0.001 for 0.1%).
+    - transaction_cost_percentage (float): Transaction cost applied to trades as a decimal (e.g., 0.012 for 1.2%).
 
     Returns:
     - strategy_output (Dict[str, Any]): Updated with backtest details.
@@ -36,21 +37,22 @@ def backtest(strategy_output: Dict[str, Any], starting_cash: float = 5000,
         else:
             # Sell current holdings
             if current_holding != 'GBP':
-                sell_price = get_trade_price(current_holding, i) * (1 - slippage_percentage / 100)
-                cash += positions[current_holding] * sell_price * (1 - transaction_cost_percentage / 100)
-                trades.append({'asset': current_holding, 'action': 'sell', 'qty': positions[current_holding], 
+                sell_price = get_trade_price(current_holding, i) * (1 - slippage_percentage)
+                proceeds = positions[current_holding] * sell_price
+                cash += proceeds
+                trades.append({'asset': current_holding, 'action': 'sell', 'qty': positions[current_holding],
                                'price': sell_price, 'time_point': i})
                 positions[current_holding] = 0
 
             # Buy new asset
             if asset_to_trade != 'GBP':
                 trade_price = get_trade_price(asset_to_trade, i)
-                adjusted_trade_price = trade_price * (1 + slippage_percentage / 100)
-                transaction_cost = cash * transaction_cost_percentage / 100
+                adjusted_trade_price = trade_price * (1 + slippage_percentage)
+                transaction_cost = cash * transaction_cost_percentage
                 quantity_to_buy = (cash - transaction_cost) / adjusted_trade_price
                 positions[asset_to_trade] = quantity_to_buy
-                trades.append({'asset': asset_to_trade, 'action': 'buy', 'qty': quantity_to_buy, 
-                               'price': adjusted_trade_price, 'time_point': i})
+                trades.append({'asset': asset_to_trade, 'action': 'buy', 'qty': quantity_to_buy,
+                               'price': adjusted_trade_price, 'transaction_cost': transaction_cost, 'time_point': i})
                 cash = 0
                 current_holding = asset_to_trade
 
