@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 
 def backtest(strategy_output: Dict[str, Any], starting_cash: float = 1000,
-             slippage_percentage: float = 0.00, transaction_cost_percentage: float = 0.012) -> Dict[str, Any]:
+             slippage_percentage: float = 0.005, transaction_cost_percentage: float = 0.012) -> Dict[str, Any]:
     """
     Simulates trading based on the strategy's output, adjusting for slippage and transaction costs as decimals.
     Now ensures no unnecessary buy/sell of the same asset on the same day.
