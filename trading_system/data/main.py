@@ -43,7 +43,7 @@ def price_data(tickers: List[str], start_date: str, end_date: str) -> Dict[str, 
 
 def fetch_price(pair: str, start: str, end: str) -> pd.DataFrame:
     """
-    Fetches the historical daily price and volume data for a cryptocurrency pair.
+    Fetches the historical 4-hour price and volume data for a cryptocurrency pair by resampling 1-hour data.
 
     Parameters:
     - pair (str): The cryptocurrency pair symbol, e.g., 'BTC-GBP'.
@@ -51,10 +51,11 @@ def fetch_price(pair: str, start: str, end: str) -> pd.DataFrame:
     - end (str): The end date for the query in 'YYYY-MM-DD' format.
 
     Returns:
-    - df (pd.DataFrame): Contains the Open, High, Low, Close prices, and Volume.
+    - df (pd.DataFrame): Contains the Open, High, Low, Close prices, and Volume at a 4-hour timeframe.
     """
     try:
-        df = yf.download(pair, start=start, end=end)
+        # Fetch data using yfinance with a 1-hour interval
+        df = yf.download(pair, start=start, end=end, interval="1h")
 
         if df.empty:
             logging.error(f"No data fetched for {pair}. Data may not be available for this ticker.")
@@ -63,11 +64,21 @@ def fetch_price(pair: str, start: str, end: str) -> pd.DataFrame:
         # Select relevant columns
         df = df[['Open', 'High', 'Low', 'Close', 'Volume']].copy()
 
+        # Resample from 1-hour data to 4-hour data
+        df = df.resample('4H').agg({
+            'Open': 'first',
+            'High': 'max',
+            'Low': 'min',
+            'Close': 'last',
+            'Volume': 'sum'
+        })
+
         # Handle missing data
         df.fillna(method='ffill', inplace=True)
         df.dropna(inplace=True)
 
         return df
+
     except Exception as e:
         logging.error(f"Error fetching data for {pair}: {e}")
         return None

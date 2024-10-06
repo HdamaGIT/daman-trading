@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 def calculate_indicators_for_ticker(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate technical indicators for a given ticker's data.
+    Calculate technical indicators for a given ticker's data, focusing on momentum indicators.
 
     Parameters:
     - df (pd.DataFrame): DataFrame containing OHLCV data.
@@ -15,22 +15,29 @@ def calculate_indicators_for_ticker(df: pd.DataFrame) -> pd.DataFrame:
     short_period = 20
     long_period = 200
     rsi_period = 14
+    fast_ema_period = 10
+    slow_ema_period = 50
 
-    # Calculate SMAs, EMAs, RSI, Bollinger Bands, MACD, and Stochastic Oscillator
-    df['short_sma'] = df['Close'].rolling(window=short_period).mean()
-    df['long_sma'] = df['Close'].rolling(window=long_period).mean()
-    df['short_ema'] = talib.EMA(df['Close'], timeperiod=short_period)
-    df['long_ema'] = talib.EMA(df['Close'], timeperiod=long_period)
+    # Calculating EMAs for Momentum Cross Strategy
+    df['fast_ema'] = talib.EMA(df['Close'], timeperiod=fast_ema_period)
+    df['slow_ema'] = talib.EMA(df['Close'], timeperiod=slow_ema_period)
+    df['momentum_signal'] = df['fast_ema'] > df['slow_ema']
+
+    # RSI Indicator for Momentum Analysis
     df['RSI'] = talib.RSI(df['Close'], timeperiod=rsi_period)
-    df['upperband'], df['middleband'], df['lowerband'] = talib.BBANDS(df['Close'], timeperiod=short_period, nbdevup=2, nbdevdn=2, matype=0)
-    df['macd'], df['macdsignal'], df['macdhist'] = talib.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
-    df['slowk'], df['slowd'] = talib.STOCH(df['High'], df['Low'], df['Close'], fastk_period=5, slowk_period=3, slowd_period=3)
+
+    # MACD Indicator to Gauge Market Momentum
+    df['macd'], df['macdsignal'], _ = talib.MACD(df['Close'], fastperiod=12, slowperiod=26, signalperiod=9)
+
+    # Volume-Weighted Average Price (VWAP) for Confirmation
+    df['vwap'] = ((df['Volume'] * (df['High'] + df['Low'] + df['Close']) / 3).cumsum()) / df['Volume'].cumsum()
 
     return df
 
+
 def calculate_indicators(data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     """
-    Calculate indicators for all tickers in the dataset.
+    Calculate indicators for all tickers in the dataset, with a focus on momentum indicators.
 
     Parameters:
     - data (Dict[str, Dict[str, Any]]): Dictionary of raw price data per ticker.
@@ -41,10 +48,12 @@ def calculate_indicators(data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str,
     for ticker, ticker_data in data.items():
         df = pd.DataFrame(ticker_data)
 
+        # Ensure 'date' is properly set as index if it exists in data
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'])
             df.set_index('date', inplace=True)
 
+        # Calculate momentum indicators
         data[ticker] = calculate_indicators_for_ticker(df).reset_index().to_dict('list')
 
     return data
