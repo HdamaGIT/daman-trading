@@ -55,7 +55,7 @@ def fetch_price(pair: str, start: str, end: str) -> pd.DataFrame:
     """
     try:
         # Fetch data using yfinance with a 1-hour interval
-        df = yf.download(pair, start=start, end=end, interval="1h")
+        df = yf.download(pair, start=start, end=end, interval="1d")
 
         if df.empty:
             logging.error(f"No data fetched for {pair}. Data may not be available for this ticker.")
@@ -65,13 +65,13 @@ def fetch_price(pair: str, start: str, end: str) -> pd.DataFrame:
         df = df[['Open', 'High', 'Low', 'Close', 'Volume']].copy()
 
         # Resample from 1-hour data to 4-hour data
-        df = df.resample('4H').agg({
-            'Open': 'first',
-            'High': 'max',
-            'Low': 'min',
-            'Close': 'last',
-            'Volume': 'sum'
-        })
+        # df = df.resample('4H').agg({
+        #     'Open': 'first',
+        #     'High': 'max',
+        #     'Low': 'min',
+        #     'Close': 'last',
+        #     'Volume': 'sum'
+        # })
 
         # Handle missing data
         df.fillna(method='ffill', inplace=True)

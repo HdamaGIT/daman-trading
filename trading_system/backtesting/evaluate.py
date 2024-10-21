@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 
 
 def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
-             transaction_cost_percentage: float = 0.00) -> Dict[str, Any]:
+             transaction_cost_percentage: float = 0.0) -> Dict[str, Any]:
     """
     Evaluates the performance of the backtesting by calculating key metrics such as Sharpe ratio,
     profit/loss, drawdowns, win rate, profit factor, Sortino ratio, and volatility.
