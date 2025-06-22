@@ -4,10 +4,10 @@ from typing import Dict, Any, List
 
 
 def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
-             transaction_cost_percentage: float = 0.012) -> Dict[str, Any]:
+             transaction_cost_percentage: float = 0.0) -> Dict[str, Any]:
     """
     Evaluates the performance of the backtesting by calculating key metrics such as Sharpe ratio,
-    profit/loss, and drawdowns.
+    profit/loss, drawdowns, win rate, profit factor, Sortino ratio, and volatility.
 
     Parameters:
     - strategy_output (Dict[str, Any]): The strategy output including backtest details.
@@ -29,13 +29,35 @@ def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
     profit_loss = round(end_portfolio - start_portfolio, 0)
     profit_percentage = round((profit_loss / start_portfolio) * 100, 0)
 
+    # Daily Returns and Sharpe Ratio
     daily_returns = pd.Series(portfolio_values).pct_change().dropna()
     excess_daily_returns = daily_returns - (risk_free_rate / 252)
     sharpe_ratio = round(np.sqrt(252) * excess_daily_returns.mean() / excess_daily_returns.std(), 2)
 
+    # Volatility (Standard Deviation of Daily Returns)
+    volatility = round(daily_returns.std() * np.sqrt(252) * 100, 2)  # Annualized volatility as a percentage
+
     # Calculate the total fees paid during the backtest
     fees_paid = round(sum(trade['price'] * trade['qty'] * transaction_cost_percentage for trade in trades), 2)
 
+    # Calculate Win Rate and Profit Factor
+    winning_trades = [trade for trade in trades if (trade['action'] == 'sell' and trade['price'] > trade.get('buy_price', 0))]
+    losing_trades = [trade for trade in trades if (trade['action'] == 'sell' and trade['price'] <= trade.get('buy_price', 0))]
+    win_rate = round(len(winning_trades) / num_trades * 100, 2) if num_trades > 0 else 0
+
+    total_profit = sum(trade['qty'] * (trade['price'] - trade.get('buy_price', 0)) for trade in winning_trades)
+    total_loss = sum(trade['qty'] * (trade.get('buy_price', 0) - trade['price']) for trade in losing_trades)
+    profit_factor = round(total_profit / total_loss, 2) if total_loss > 0 else float('inf')
+
+    # Sortino Ratio (Using only negative returns for downside deviation)
+    downside_returns = daily_returns[daily_returns < 0]
+    downside_std = downside_returns.std()
+    sortino_ratio = round(np.sqrt(252) * excess_daily_returns.mean() / downside_std, 2) if downside_std != 0 else float('inf')
+
+    # Calculate Maximum Drawdown and Average Drawdown Length
+    max_drawdown, average_drawdown_length = calculate_drawdowns(portfolio_values)
+
+    # Compile the evaluation summary
     evaluation_summary = {
         'Number of Trading Days': num_trading_days,
         'Number of Trades': num_trades,
@@ -45,16 +67,20 @@ def evaluate(strategy_output: Dict[str, Any], risk_free_rate: float = 0.01,
         'Profit/Loss': f"£{profit_loss:,.0f}",
         'Profit Percentage': f"{profit_percentage}%",
         'Sharpe Ratio': sharpe_ratio,
+        'Sortino Ratio': sortino_ratio,
+        'Volatility': f"{volatility}%",
+        'Max Drawdown': f"{max_drawdown}%",
+        'Average Drawdown Length': f"{average_drawdown_length} days",
         'Fees Paid': f"£{fees_paid:,.2f}",
+        'Win Rate': f"{win_rate}%",
+        'Profit Factor': profit_factor,
     }
 
-    max_drawdown, average_drawdown_length = calculate_drawdowns(portfolio_values)
-    evaluation_summary['Max Drawdown'] = f"{max_drawdown}%"
-    evaluation_summary['Average Drawdown Length'] = f"{average_drawdown_length} days"
-
+    # Add evaluation of holding strategies (BTC and ETH hold strategies)
     evaluation_summary.update(hold_strategy_evaluation(strategy_output, 'BTC-GBP', start_portfolio, transaction_cost_percentage))
     evaluation_summary.update(hold_strategy_evaluation(strategy_output, 'ETH-GBP', start_portfolio, transaction_cost_percentage))
 
+    # Update strategy output with the evaluation summary
     strategy_output['evaluation_summary'] = evaluation_summary
 
     return strategy_output
