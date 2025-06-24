@@ -3,14 +3,16 @@ from treys import Card, Evaluator, Deck
 import random
 import os
 import sys
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # --- Title ---
-st.title("♠️ Poker Hand Assistant")
+st.title("♠️ Poker Hand Assistant – Preflop BB Decision")
 
 # --- Sidebar Inputs ---
 with st.sidebar:
     if st.button("🔄 Next Hand"):
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        st.rerun()
 
     total_players = st.number_input("Total number of players at the table:", min_value=2, step=1, value=6)
     pot_size = st.number_input("Pot size (in BB):", min_value=0.0, step=0.5)
@@ -127,19 +129,23 @@ if hole_cards:
             elif odds >= 20 and tier != 1:
                 st.info("Pot odds may justify a call with marginal hands.")
 
+            if position == "Early":
+                st.write("📍 Early position: be more cautious, tighter range advised.")
+            elif position == "Late":
+                st.write("📍 Late position: wider range acceptable, use positional advantage.")
+            elif position == "Small Blind":
+                st.write("📍 Small Blind: consider implied odds and post-flop disadvantage.")
+
             hero_hole = [Card.new(c) for c in cards]
             full_board = []
 
-            # Add valid flop cards
             if flop:
                 flop_cards = [card for card in flop.split() if len(card) == 2]
                 full_board.extend([Card.new(card[0].upper() + card[1].lower()) for card in flop_cards])
 
-            # Add valid turn card
             if turn and len(turn.strip()) == 2:
                 full_board.append(Card.new(turn.strip()[0].upper() + turn.strip()[1].lower()))
 
-            # Add valid river card
             if river and len(river.strip()) == 2:
                 full_board.append(Card.new(river.strip()[0].upper() + river.strip()[1].lower()))
 
@@ -157,11 +163,15 @@ if hole_cards:
             ev = calculate_ev(win_pct, pot_size, bet_to_call)
             st.write(f"**Expected Value (EV) of Calling:** {ev} BB")
 
+            # --- Visual Hand Chart ---
+            fig, ax = plt.subplots()
+            sns.barplot(x=["Win %", "Tie %"], y=[win_pct, tie_pct], ax=ax)
+            ax.set_ylim(0, 100)
+            ax.set_title("Equity Breakdown")
+            st.pyplot(fig)
+
     except Exception as e:
         st.error(f"Error evaluating hand: {e}")
 else:
     st.info("Enter your hole cards above to get started.")
-
-
-
 
