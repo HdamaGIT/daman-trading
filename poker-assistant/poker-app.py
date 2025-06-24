@@ -1,0 +1,147 @@
+import streamlit as st
+from treys import Card, Evaluator, Deck
+import random
+
+# --- Title ---
+st.title("♠️ Poker Hand Assistant – Preflop BB Decision")
+
+# --- Sidebar Inputs ---
+with st.sidebar:
+    total_players = st.number_input("Total number of players at the table:", min_value=2, step=1, value=6)
+    if st.button("🔄 Next Hand"):
+        st.rerun()
+
+# --- Input Section ---
+hole_cards = st.text_input("Enter your hole cards (e.g., Ah Ks):")
+pot_size = st.number_input("Pot size (in BB):", min_value=0.0, step=0.5)
+bet_to_call = st.number_input("Amount to call (in BB):", min_value=0.0, step=0.5)
+flop = st.text_input("Flop (optional, e.g., Qd Jc 9h):")
+turn = st.text_input("Turn (optional, e.g., 2s):")
+river = st.text_input("River (optional, e.g., 7h):")
+active_opponents = st.number_input("Number of opponents still in the hand:", min_value=1, step=1, value=1)
+
+# --- Utility: Hand Strength Ranking ---
+def get_hand_strength_rank(card1, card2):
+    ranks = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8,
+             '9':9, 'T':10, 'J':11, 'Q':12, 'K':13, 'A':14}
+
+    def rank(card): return card[0].upper()
+    def suit(card): return card[1].lower()
+
+    r1 = rank(card1)
+    r2 = rank(card2)
+    s1 = suit(card1)
+    s2 = suit(card2)
+
+    suited = s1 == s2
+    r1v = ranks.get(r1, 0)
+    r2v = ranks.get(r2, 0)
+
+    pair = r1 == r2
+
+    if pair and r1v >= 12:
+        return 1
+    if {r1 + r2, r2 + r1} & {'AK', 'KA'} and suited:
+        return 1
+    if {r1 + r2, r2 + r1} & {'AK', 'KA'}:
+        return 1
+    if pair and r1v >= 9:
+        return 2
+    if {r1 + r2, r2 + r1} & {'AQ', 'AJ', 'KQ'} and suited:
+        return 2
+    if {r1 + r2, r2 + r1} & {'AJ', 'KQ', 'QJ'}:
+        return 2
+
+    return 3
+
+# --- Pot Odds Calculator ---
+def calculate_pot_odds(pot, call):
+    if call == 0:
+        return 0
+    return round((call / (pot + call)) * 100, 2)
+
+# --- Win Probability Simulator ---
+def run_win_simulation(hole_cards, community_cards, num_opponents=1, num_simulations=500):
+    evaluator = Evaluator()
+    deck = Deck()
+
+    seen = set()
+    for card in hole_cards + community_cards:
+        if card in seen:
+            continue
+        seen.add(card)
+        if card in deck.cards:
+            deck.cards.remove(card)
+
+    wins = 0
+    ties = 0
+    for _ in range(num_simulations):
+        deck.shuffle()
+        opponent_hands = [[deck.draw(1)[0], deck.draw(1)[0]] for _ in range(num_opponents)]
+        remaining_board = community_cards[:]
+
+        while len(remaining_board) < 5:
+            remaining_board.append(deck.draw(1)[0])
+
+        hero_score = evaluator.evaluate(remaining_board, hole_cards)
+        opponent_scores = [evaluator.evaluate(remaining_board, hand) for hand in opponent_hands]
+
+        if all(hero_score < score for score in opponent_scores):
+            wins += 1
+        elif any(hero_score == score for score in opponent_scores):
+            ties += 1
+
+    win_pct = round(100 * wins / num_simulations, 2)
+    tie_pct = round(100 * ties / num_simulations, 2)
+    return win_pct, tie_pct
+
+# --- Evaluation Logic ---
+if hole_cards:
+    try:
+        cards = [c[0].upper() + c[1].lower() for c in hole_cards.split() if len(c) == 2]
+        if len(cards) != 2:
+            st.error("Please enter exactly two hole cards, like 'Ah Ks'.")
+        else:
+            tier = get_hand_strength_rank(cards[0], cards[1])
+            odds = calculate_pot_odds(pot_size, bet_to_call)
+
+            if tier == 1:
+                st.success("Preflop Tier: **Premium**\n✅ Recommend: **Call or Raise**")
+            elif tier == 2:
+                st.info("Preflop Tier: **Playable**\n⚠️ Recommend: **Consider Calling** depending on raise size and players left.")
+            else:
+                st.warning("Preflop Tier: **Weak**\n❌ Recommend: **Fold** unless pot odds are exceptional.")
+
+            st.write(f"**Pot Odds:** {odds}%")
+            if odds < 15 and tier == 3:
+                st.info("Pot odds are low and hand is weak. Recommend folding.")
+            elif odds >= 20 and tier != 1:
+                st.info("Pot odds may justify a call with marginal hands.")
+
+            hero_hole = [Card.new(c) for c in cards]
+            full_board = []
+
+            # Add valid flop cards
+            if flop:
+                flop_cards = [card for card in flop.split() if len(card) == 2]
+                full_board.extend([Card.new(card[0].upper() + card[1].lower()) for card in flop_cards])
+
+            # Add valid turn card
+            if turn and len(turn.strip()) == 2:
+                full_board.append(Card.new(turn.strip()[0].upper() + turn.strip()[1].lower()))
+
+            # Add valid river card
+            if river and len(river.strip()) == 2:
+                full_board.append(Card.new(river.strip()[0].upper() + river.strip()[1].lower()))
+
+            win_pct, tie_pct = run_win_simulation(hero_hole, full_board, num_opponents=active_opponents)
+
+            st.write(f"**Win % (vs {active_opponents} opponent{'s' if active_opponents > 1 else ''}):** {win_pct}%")
+            st.write(f"**Tie %:** {tie_pct}%")
+
+    except Exception as e:
+        st.error(f"Error evaluating hand: {e}")
+else:
+    st.info("Enter your hole cards above to get started.")
+
+
