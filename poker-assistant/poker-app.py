@@ -1,24 +1,28 @@
 import streamlit as st
 from treys import Card, Evaluator, Deck
 import random
+import os
+import sys
 
 # --- Title ---
-st.title("♠️ Poker Hand Assistant – Preflop BB Decision")
+st.title("♠️ Poker Hand Assistant")
 
 # --- Sidebar Inputs ---
 with st.sidebar:
-    total_players = st.number_input("Total number of players at the table:", min_value=2, step=1, value=6)
     if st.button("🔄 Next Hand"):
-        st.rerun()
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    total_players = st.number_input("Total number of players at the table:", min_value=2, step=1, value=6)
+    pot_size = st.number_input("Pot size (in BB):", min_value=0.0, step=0.5)
+    bet_to_call = st.number_input("Amount to call (in BB):", min_value=0.0, step=0.5)
+    active_opponents = st.number_input("Number of opponents still in the hand:", min_value=1, step=1, value=1)
+    position = st.selectbox("Your table position:", options=["Early", "Middle", "Late", "Small Blind", "Big Blind"])
 
 # --- Input Section ---
 hole_cards = st.text_input("Enter your hole cards (e.g., Ah Ks):")
-pot_size = st.number_input("Pot size (in BB):", min_value=0.0, step=0.5)
-bet_to_call = st.number_input("Amount to call (in BB):", min_value=0.0, step=0.5)
 flop = st.text_input("Flop (optional, e.g., Qd Jc 9h):")
 turn = st.text_input("Turn (optional, e.g., 2s):")
 river = st.text_input("River (optional, e.g., 7h):")
-active_opponents = st.number_input("Number of opponents still in the hand:", min_value=1, step=1, value=1)
 
 # --- Utility: Hand Strength Ranking ---
 def get_hand_strength_rank(card1, card2):
@@ -59,6 +63,11 @@ def calculate_pot_odds(pot, call):
     if call == 0:
         return 0
     return round((call / (pot + call)) * 100, 2)
+
+# --- Expected Value ---
+def calculate_ev(win_pct, pot, call):
+    win_fraction = win_pct / 100
+    return round((win_fraction * pot) - ((1 - win_fraction) * call), 2)
 
 # --- Win Probability Simulator ---
 def run_win_simulation(hole_cards, community_cards, num_opponents=1, num_simulations=500):
@@ -139,9 +148,20 @@ if hole_cards:
             st.write(f"**Win % (vs {active_opponents} opponent{'s' if active_opponents > 1 else ''}):** {win_pct}%")
             st.write(f"**Tie %:** {tie_pct}%")
 
+            evaluator = Evaluator()
+            hand_score = evaluator.evaluate(full_board, hero_hole)
+            hand_class = evaluator.get_rank_class(hand_score)
+            hand_name = evaluator.class_to_string(hand_class)
+            st.write(f"**Current Best Hand:** {hand_name}")
+
+            ev = calculate_ev(win_pct, pot_size, bet_to_call)
+            st.write(f"**Expected Value (EV) of Calling:** {ev} BB")
+
     except Exception as e:
         st.error(f"Error evaluating hand: {e}")
 else:
     st.info("Enter your hole cards above to get started.")
+
+
 
 
