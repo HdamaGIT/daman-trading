@@ -3,15 +3,16 @@ from treys import Card, Evaluator, Deck
 import random
 import os
 import sys
-import matplotlib.pyplot as plt
-import seaborn as sns
+from collections import Counter
 
 # --- Title ---
-st.title("♠️ Poker Hand Assistant – Preflop BB Decision")
+st.title("♠️ Poker Hand Assistant")
 
 # --- Sidebar Inputs ---
 with st.sidebar:
     if st.button("🔄 Next Hand"):
+        st.session_state.clear()
+        st.session_state.active_opponents = st.session_state.get("total_players", 6)
         st.rerun()
 
     total_players = st.number_input("Total number of players at the table:", min_value=2, step=1, value=6)
@@ -70,6 +71,26 @@ def calculate_pot_odds(pot, call):
 def calculate_ev(win_pct, pot, call):
     win_fraction = win_pct / 100
     return round((win_fraction * pot) - ((1 - win_fraction) * call), 2)
+
+# --- Draw Detection ---
+def detect_draws(board):
+    draw_msgs = []
+    if len(board) < 3:
+        return draw_msgs
+
+    suits = [Card.int_to_str(card)[1] for card in board]
+    suit_counts = Counter(suits)
+    if max(suit_counts.values()) == 4:
+        draw_msgs.append("You have a flush draw.")
+
+    ranks = sorted([Card.get_rank_int(card) for card in board])
+    for i in range(len(ranks) - 2):
+        window = ranks[i:i+3]
+        if max(window) - min(window) == 3:
+            draw_msgs.append("You may have a straight draw.")
+            break
+
+    return draw_msgs
 
 # --- Win Probability Simulator ---
 def run_win_simulation(hole_cards, community_cards, num_opponents=1, num_simulations=500):
@@ -155,23 +176,30 @@ if hole_cards:
             st.write(f"**Tie %:** {tie_pct}%")
 
             evaluator = Evaluator()
-            hand_score = evaluator.evaluate(full_board, hero_hole)
+            completed_board = full_board + [Card.new(c) for c in ['2h'] * (5 - len(full_board))]
+            hand_score = evaluator.evaluate(completed_board, hero_hole)
             hand_class = evaluator.get_rank_class(hand_score)
             hand_name = evaluator.class_to_string(hand_class)
-            st.write(f"**Current Best Hand:** {hand_name}")
+            st.write(f"**Current Best Hand (with simulated board):** {hand_name}")
 
             ev = calculate_ev(win_pct, pot_size, bet_to_call)
             st.write(f"**Expected Value (EV) of Calling:** {ev} BB")
 
-            # --- Visual Hand Chart ---
-            fig, ax = plt.subplots()
-            sns.barplot(x=["Win %", "Tie %"], y=[win_pct, tie_pct], ax=ax)
-            ax.set_ylim(0, 100)
-            ax.set_title("Equity Breakdown")
-            st.pyplot(fig)
+            # --- Advice Rationales ---
+            st.markdown("### 🧠 Advice Rationale")
+            st.write(f"Hand Tier: {tier}")
+            st.write(f"Pot Odds: {odds}% vs Win %: {win_pct}%")
+            if win_pct < odds:
+                st.write("⚠️ Your win probability is lower than required by pot odds. Consider folding.")
+            else:
+                st.write("✅ Win probability exceeds pot odds. Call may be justified.")
+
+            # --- Draw Detection Output ---
+            draws = detect_draws(full_board + hero_hole)
+            for draw_msg in draws:
+                st.info(draw_msg)
 
     except Exception as e:
         st.error(f"Error evaluating hand: {e}")
 else:
     st.info("Enter your hole cards above to get started.")
-
