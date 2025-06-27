@@ -18,12 +18,15 @@ def strategy(data: Dict[str, Any]) -> Dict[str, Any]:
     try:
         logging.info("Calculating indicators...")
         data_with_indicators = calculate_indicators(data)
+        logging.info("Complete: indicators...")
 
-        logging.info("Generating all signals...")
+        logging.info("Generating signals...")
         final_dict = all_signals(data_with_indicators)
+        logging.info("Complete: signals...")
 
         logging.info("Applying strategy...")
         strategy_apply = apply_strategy(final_dict)
+        logging.info("Complete: strategy...")
 
         logging.info("Strategy completed successfully.")
         return strategy_apply
