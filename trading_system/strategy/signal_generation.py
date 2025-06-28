@@ -8,17 +8,23 @@ def generate_signals(df: pd.DataFrame, min_hold_period: int = 5) -> pd.DataFrame
     trailing_stop_pct = 0.05
     take_profit_pct = 0.10
 
-    logging.info("Dropping NaN rows before signal computation...")
-    df = df.dropna(
-        subset=[
-            'fast_ema', 'slow_ema', 'RSI', 'macd', 'macdsignal', 'Volume', 'volume_ma'
-        ]
-    )
-    print(df)
-    logging.info("Calculating Buy Signals...")
-
     df['volume_ma'] = df['Volume'].rolling(window=volume_lookback_period).mean()
 
+    # How many rows to skip for indicator warmup
+    lookback_window = max(50, 26, volume_lookback_period)
+
+    if len(df) <= lookback_window:
+        logging.warning("Not enough data to generate signals after lookback trimming.")
+        return df
+
+    # Drop warmup rows
+    df = df.iloc[lookback_window:].copy()
+
+    if df.empty:
+        logging.warning("DataFrame is empty after dropping NaNs. Skipping signal generation.")
+        return df
+
+    logging.info("Calculating Buy Signals...")
     df['buy_signal'] = (
         (df['fast_ema'] > df['slow_ema'])
         & (df['RSI'] > 60)
@@ -28,18 +34,16 @@ def generate_signals(df: pd.DataFrame, min_hold_period: int = 5) -> pd.DataFrame
 
     df['highest_since_buy'] = df['Close'].cummax()
 
-    # Safely create entry_price
     if df['buy_signal'].any():
         df['entry_price'] = df['Close'].where(df['buy_signal']).ffill()
         df['entry_price'].fillna(df['Close'], inplace=True)
     else:
         df['entry_price'] = df['Close']
 
-    # Align all relevant columns
     for col in ['Close', 'highest_since_buy', 'entry_price']:
         df[col] = df[col].reindex(df.index)
+
     logging.info("Calculating Sell Signals...")
-    # Now compute sell_signal safely
     df['sell_signal'] = (
         (df['fast_ema'] < df['slow_ema'])
         | (df['RSI'] < 40)
@@ -75,6 +79,7 @@ def generate_signals(df: pd.DataFrame, min_hold_period: int = 5) -> pd.DataFrame
             df.at[i, 'position'] = df.at[i - 1, 'position']
 
     return df
+
 
 def all_signals(data_with_indicators: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     final_dict = {}
