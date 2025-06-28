@@ -17,7 +17,11 @@ def strategy(data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
 
         logging.info("Generating signals...")
         signals_dict = all_signals(data_with_indicators)
-        logging.info("Complete: signals...")
+        if signals_dict:
+            logging.info(f"Signals generated for {len(signals_dict)} assets.")
+        else:
+            logging.error("No signals generated for any assets. Aborting strategy.")
+            raise RuntimeError("Signal generation failed for all assets.")
 
         logging.info("Applying strategy...")
         strategy_apply = apply_strategy(signals_dict)
@@ -25,35 +29,7 @@ def strategy(data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
 
         logging.info("Strategy completed successfully.")
         return strategy_apply
+
     except Exception as e:
         logging.error(f"Error in strategy execution: {e}")
         raise
-
-# def strategy(data: Dict[str, Any]) -> Dict[str, Any]:
-#     """
-#     Main strategy function to calculate indicators, generate signals, and apply the strategy.
-#
-#     Parameters:
-#     - data (Dict[str, Any]): Raw price data for each ticker.
-#
-#     Returns:
-#     - strategy_apply (Dict[str, Any]): Final signals and strategy application results.
-#     """
-#     try:
-#         logging.info("Calculating indicators...")
-#         data_with_indicators = calculate_indicators(data)
-#         logging.info("Complete: indicators...")
-#
-#         logging.info("Generating signals...")
-#         final_dict = all_signals(data_with_indicators)
-#         logging.info("Complete: signals...")
-#
-#         logging.info("Applying strategy...")
-#         strategy_apply = apply_strategy(final_dict)
-#         logging.info("Complete: strategy...")
-#
-#         logging.info("Strategy completed successfully.")
-#         return strategy_apply
-#     except Exception as e:
-#         logging.error(f"Error in strategy execution: {e}")
-#         raise
