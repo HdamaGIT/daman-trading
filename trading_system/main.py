@@ -4,7 +4,7 @@ from utils.logging import configure_logging
 from data.main import data
 from strategy.main import strategy
 from backtesting.main import backtesting
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 import pandas as pd
 
 
@@ -32,7 +32,17 @@ def load_data(config: AppConfig) -> Optional[pd.DataFrame]:
         return None
 
 
-def generate_strategy_signals(df_data: pd.DataFrame) -> Optional[pd.DataFrame]:
+# def generate_strategy_signals(df_data: pd.DataFrame) -> Optional[pd.DataFrame]:
+#     """Generates trading signals based on the strategy."""
+#     try:
+#         strategy_output = strategy(df_data)
+#         logging.info("Strategy signals generated successfully.")
+#         return strategy_output
+#     except Exception as e:
+#         logging.error(f"Error generating strategy signals: {e}")
+#         return None
+
+def generate_strategy_signals(df_data: pd.DataFrame) -> Optional[Dict[str, pd.DataFrame]]:
     """Generates trading signals based on the strategy."""
     try:
         strategy_output = strategy(df_data)

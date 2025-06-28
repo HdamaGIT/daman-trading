@@ -1,42 +1,36 @@
 from typing import Dict, Any, List
+import pandas as pd
 
-
-def apply_strategy(signals_dict: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+def apply_strategy(signals_dict: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     """
-    Applies the strategy logic to determine the best asset to hold at each time point.
-
-    Parameters:
-    - signals_dict (Dict[str, Dict[str, Any]]): Dictionary with generated signals for each ticker.
-
-    Returns:
-    - signals_dict (Dict[str, Dict[str, Any]]): Updated dictionary with the best asset to hold at each time point.
+    Applies the strategy to determine best asset to hold at each time point.
     """
-    num_time_points = len(signals_dict[next(iter(signals_dict))]['signal'])
-    best_assets_to_hold = []
-    current_holding = 'GBP'  # Start with cash
+    # Assume all assets share the same index
+    example_df = next(iter(signals_dict.values()))
+    num_time_points = len(example_df)
 
-    # Iterate over each time point
-    for time_index in range(num_time_points):
-        selected_asset = 'Hold'  # Default action if no change in holding
-        for ticker, data in signals_dict.items():
-            if ticker == 'combined_position':  # Skip any already combined data
-                continue
+    best_assets = []
+    current_holding = 'GBP'
 
-            asset = ticker.split('-')[0]  # Extract asset name (e.g., 'BTC' from 'BTC-GBP')
-            signal = data['signal'][time_index]
+    for t in range(num_time_points):
+        selected_asset = 'Hold'
+        for ticker, df in signals_dict.items():
+            asset = ticker.split('-')[0]
+            signal = df.iloc[t]['signal']
 
-            # Buy signal takes precedence over hold or sell signals
             if signal > 0 and current_holding != asset:
                 selected_asset = asset
                 current_holding = asset
-            # Sell signal if we're holding this asset
             elif signal < 0 and current_holding == asset:
                 selected_asset = 'GBP'
                 current_holding = 'GBP'
 
-        best_assets_to_hold.append(selected_asset)
+        best_assets.append(selected_asset)
 
-    # Add combined position to the signals dictionary
-    signals_dict['combined_position'] = {'final_signal': best_assets_to_hold}
+    combined_df = pd.DataFrame({
+        'final_signal': best_assets
+    }, index=example_df.index)
+
+    signals_dict['combined_position'] = combined_df
 
     return signals_dict
