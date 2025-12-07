@@ -22,13 +22,15 @@ class StrategyParams:
     tp_atr_mult: float = 2.5
     initial_capital: float = 10_000.0
     risk_per_trade: float = 0.02  # 2%
-    exit_mode: str = "fixed_rr"  # "fixed_rr" or "trend_follow"
+    exit_mode: str = "fixed_rr"   # "fixed_rr" or "trend_follow"
     trail_stops: bool = True
 
-    # NEW: choose entry rule flavour
-    # "deep_pullback"   – your current strict logic
-    # "shallow_pullback" – more trades, shallower dips allowed
-    # "rebound_cross"   – buy the bounce back above EMA_fast after a dip
+    # "cash" = realised PnL only (your current behaviour)
+    # "mtm"  = mark-to-market: realised + open PnL
+    equity_mode: str = "mtm"
+
+    # entry mode as you already had
     entry_mode: str = "deep_pullback"
+
 
 DEFAULT_PARAMS = StrategyParams()

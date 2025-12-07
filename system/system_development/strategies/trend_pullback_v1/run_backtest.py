@@ -36,16 +36,18 @@ def backtest_symbol(
     if params is None:
         params = DEFAULT_PARAMS
 
+    # --- Load data and prepare indicators / signals ---
     raw = download_price_data(symbol, start=start, end=end, interval=interval)
     df = prepare_dataframe(raw, params)
 
     # Drop initial rows with NaNs in indicators
     df = df.dropna(subset=["EMA_Fast", "EMA_Slow", "RSI", "ATR", "ADX"]).copy()
 
+    # Optional long-only mode for certain indices
     if symbol in LONG_ONLY_SYMBOLS:
         df.loc[df["Signal"] < 0, "Signal"] = 0
 
-    # --- Buy & hold benchmark (same initial capital, day-1 buy and hold) ---
+    # --- Buy & hold benchmark ---
     first_close = float(df["Close"].iloc[0])
     benchmark_curve = params.initial_capital * (df["Close"] / first_close)
 
@@ -53,9 +55,12 @@ def backtest_symbol(
         print(f"\nSignal counts for {symbol}:")
         print(df["Signal"].value_counts(dropna=False))
 
+    # ===== Backtest core =====
+
+    # realised equity only
     equity = params.initial_capital
-    equity_curve = []
-    dates = []
+    equity_curve: list[float] = []
+    dates: list[pd.Timestamp] = []
 
     trades: List[Trade] = []
     position = 0  # 0 flat, 1 long, -1 short
@@ -68,49 +73,46 @@ def backtest_symbol(
     for idx, row in df.iterrows():
         dates.append(idx)
 
+        close = float(row["Close"])
+        high = float(row["High"])
+        low = float(row["Low"])
+        adx = float(row["ADX"])
+        ema_slow = float(row["EMA_Slow"])
+        atr_val = float(row["ATR"])
+
         if position == 0:
             # ---- FLAT: check for new entry ----
             signal = int(row["Signal"])
             if signal != 0:
-                atr_val = float(row["ATR"])
                 if atr_val <= 0:
-                    equity_curve.append(equity)
-                    continue
-
-                stop_distance = params.stop_atr_mult * atr_val
-                risk_amount = equity * params.risk_per_trade
-                size = risk_amount / stop_distance
-
-                entry_price = float(row["Close"])
-                if signal == 1:
-                    stop_price = entry_price - stop_distance
-                    if params.exit_mode == "fixed_rr":
-                        tp_price = entry_price + params.tp_atr_mult * atr_val
-                    else:
-                        tp_price = None
+                    # nothing we can do with a zero ATR
+                    pass
                 else:
-                    stop_price = entry_price + stop_distance
-                    if params.exit_mode == "fixed_rr":
-                        tp_price = entry_price - params.tp_atr_mult * atr_val
+                    stop_distance = params.stop_atr_mult * atr_val
+                    risk_amount = equity * params.risk_per_trade
+                    size = risk_amount / stop_distance
+
+                    entry_price = close
+                    if signal == 1:
+                        stop_price = entry_price - stop_distance
+                        if params.exit_mode == "fixed_rr":
+                            tp_price = entry_price + params.tp_atr_mult * atr_val
+                        else:
+                            tp_price = None
                     else:
-                        tp_price = None
+                        stop_price = entry_price + stop_distance
+                        if params.exit_mode == "fixed_rr":
+                            tp_price = entry_price - params.tp_atr_mult * atr_val
+                        else:
+                            tp_price = None
 
-                position = signal
-                entry_date = idx
-
-            equity_curve.append(equity)
+                    position = signal
+                    entry_date = idx
 
         else:
             # ---- IN A TRADE: manage position ----
             exit_price = None
             exit_reason = None
-
-            high = float(row["High"])
-            low = float(row["Low"])
-            close = float(row["Close"])
-            adx = float(row["ADX"])
-            ema_slow = float(row["EMA_Slow"])
-            atr_val = float(row["ATR"])
 
             # Optionally trail the stop in trend_follow mode
             if params.exit_mode == "trend_follow" and params.trail_stops:
@@ -146,7 +148,7 @@ def backtest_symbol(
 
             if exit_price is not None:
                 pnl = (exit_price - entry_price) * size * position
-                equity += pnl
+                equity += pnl  # realised PnL only
 
                 trades.append(
                     Trade(
@@ -163,21 +165,30 @@ def backtest_symbol(
                     )
                 )
 
-                # reset
+                # reset position
                 position = 0
                 entry_price = stop_price = 0.0
                 tp_price = None
                 size = 0.0
                 entry_date = None
 
+        # ---- After handling trade logic: compute equity for this bar ----
+        if position == 0:
+            unrealised = 0.0
+        else:
+            unrealised = (close - entry_price) * size * position
+
+        equity_mtm = equity + unrealised
+
+        if params.equity_mode.lower() == "mtm":
+            equity_curve.append(equity_mtm)
+        else:  # "cash"
             equity_curve.append(equity)
 
     equity_series = pd.Series(equity_curve, index=dates)
     stats = calculate_stats(equity_series, trades)
 
     if verbose and trades:
-        from collections import Counter
-
         # Holding time in days for each trade
         holding_days = np.array(
             [
@@ -186,13 +197,11 @@ def backtest_symbol(
             ]
         )
 
-        # Overall average holding time
         avg_all = float(holding_days.mean())
         print(f"\nExit breakdown for {symbol}:")
         print(f"  All trades       : {len(trades):4d} trades, "
               f"avg holding {avg_all:6.2f} days")
 
-        # Per exit reason: counts + avg holding time
         reason_counts = Counter(t.exit_reason for t in trades)
         for reason, count in reason_counts.items():
             reason_durations = holding_days[
@@ -208,7 +217,6 @@ def backtest_symbol(
         plt.figure(figsize=(10, 4))
         plt.plot(equity_series, label="Strategy")
         if show_benchmark and benchmark_curve is not None:
-            # align benchmark to same index (they already match but be safe)
             bh = benchmark_curve.reindex(equity_series.index).ffill()
             plt.plot(bh, linestyle="--", alpha=0.8, label="Buy & Hold")
         plt.title(f"Equity curve - {symbol}")
@@ -226,6 +234,7 @@ def backtest_symbol(
         stats=stats,
         benchmark_curve=benchmark_curve,
     )
+
 
 def build_portfolio_result(
     results: Dict[str, BacktestResult],
