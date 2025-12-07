@@ -5,20 +5,20 @@
 import pandas as pd
 from datetime import datetime, timedelta
 
-from trading_system.archive.src.data_collect.finviz import Finviz
-from trading_system.archive.src.data_collect.yahoo_historic_data import HistoricPriceData
+from archive.trading_system.archive.src.data_collect.finviz import Finviz
+from archive.trading_system.archive.src.data_collect.yahoo_historic_data import HistoricPriceData
 
-from trading_system.archive.src.indicator_calculation.indicators import TAIndicators
+from archive.trading_system.archive.src.indicator_calculation.indicators import TAIndicators
 
 # from src.trading_strategies.meanreversion import MeanReversion
-from trading_system.archive.src.trading_strategies.strategy import TradeAllocation
+from archive.trading_system.archive.src.trading_strategies.strategy import TradeAllocation
 
-from trading_system.archive.src.backtesting.backtest import Backtest
+from archive.trading_system.archive.src.backtesting.backtest import Backtest
 # from src.backtesting.backtest_analyse import analyse_backtest, plot_backtest
 # from src.backtesting.monte_carlo import MonteCarlo
 
-from trading_system.archive.src.database_management.save_data import save_data
-from trading_system.archive.src.database_management.database_copysave import Database
+from archive.trading_system.archive.src.database_management.save_data import save_data
+from archive.trading_system.archive.src.database_management.database_copysave import Database
 
 
 def master(input_vars, start_time,

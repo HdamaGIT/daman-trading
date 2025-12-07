@@ -1,5 +1,5 @@
 import unittest
-from trading_system.data.price_data import price_data
+from archive.trading_system.data.price_data import price_data
 
 
 class TestHistoricalDataExtraction(unittest.TestCase):
