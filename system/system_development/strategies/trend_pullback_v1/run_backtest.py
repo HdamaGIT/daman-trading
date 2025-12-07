@@ -14,7 +14,7 @@ from system.system_development.engine.metrics import (
 from .config import StrategyParams, DEFAULT_PARAMS, INDEX_SYMBOLS, FX_SYMBOLS
 from .rules import prepare_dataframe
 
-LONG_ONLY_SYMBOLS = [] #["^GSPC", "^NDX", "^FTSE"]
+LONG_ONLY_SYMBOLS = ["^GSPC", "^NDX", "^FTSE"] #["^GSPC", "^NDX", "^FTSE"]
 
 def backtest_symbol(
     symbol: str,
