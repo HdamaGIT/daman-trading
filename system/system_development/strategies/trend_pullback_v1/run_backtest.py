@@ -1,7 +1,8 @@
 from typing import List, Dict
-
 import matplotlib.pyplot as plt
-import pandas as pd  # <— make sure this is imported
+import pandas as pd
+import numpy as np
+from collections import Counter
 
 from system.system_development.engine.data_loader import download_price_data
 from system.system_development.engine.metrics import (
@@ -22,9 +23,14 @@ def backtest_symbol(
     interval: str = "1d",
     plot: bool = False,
     verbose: bool = True,
+    show_benchmark: bool = False,
 ) -> BacktestResult:
     """
     Run the trend-pullback backtest for a single symbol.
+
+    Supports two exit modes (see params.exit_mode) and,
+    if show_benchmark=True, also computes a buy-and-hold equity curve
+    for comparison and overlays it on the plot.
     """
     if params is None:
         params = DEFAULT_PARAMS
@@ -34,6 +40,10 @@ def backtest_symbol(
 
     # Drop initial rows with NaNs in indicators
     df = df.dropna(subset=["EMA_Fast", "EMA_Slow", "RSI", "ATR", "ADX"]).copy()
+
+    # --- Buy & hold benchmark (same initial capital, day-1 buy and hold) ---
+    first_close = float(df["Close"].iloc[0])
+    benchmark_curve = params.initial_capital * (df["Close"] / first_close)
 
     if verbose:
         print(f"\nSignal counts for {symbol}:")
@@ -47,7 +57,7 @@ def backtest_symbol(
     position = 0  # 0 flat, 1 long, -1 short
     entry_price = 0.0
     stop_price = 0.0
-    tp_price = 0.0
+    tp_price: float | None = None
     size = 0.0
     entry_date: pd.Timestamp | None = None
 
@@ -55,9 +65,9 @@ def backtest_symbol(
         dates.append(idx)
 
         if position == 0:
+            # ---- FLAT: check for new entry ----
             signal = int(row["Signal"])
             if signal != 0:
-                # Open new position
                 atr_val = float(row["ATR"])
                 if atr_val <= 0:
                     equity_curve.append(equity)
@@ -70,20 +80,24 @@ def backtest_symbol(
                 entry_price = float(row["Close"])
                 if signal == 1:
                     stop_price = entry_price - stop_distance
-                    tp_price = entry_price + params.tp_atr_mult * atr_val
+                    if params.exit_mode == "fixed_rr":
+                        tp_price = entry_price + params.tp_atr_mult * atr_val
+                    else:
+                        tp_price = None
                 else:
                     stop_price = entry_price + stop_distance
-                    tp_price = entry_price - params.tp_atr_mult * atr_val
+                    if params.exit_mode == "fixed_rr":
+                        tp_price = entry_price - params.tp_atr_mult * atr_val
+                    else:
+                        tp_price = None
 
                 position = signal
                 entry_date = idx
 
-                equity_curve.append(equity)
-            else:
-                equity_curve.append(equity)
+            equity_curve.append(equity)
 
         else:
-            # Manage open position
+            # ---- IN A TRADE: manage position ----
             exit_price = None
             exit_reason = None
 
@@ -92,13 +106,23 @@ def backtest_symbol(
             close = float(row["Close"])
             adx = float(row["ADX"])
             ema_slow = float(row["EMA_Slow"])
+            atr_val = float(row["ATR"])
+
+            # Optionally trail the stop in trend_follow mode
+            if params.exit_mode == "trend_follow" and params.trail_stops:
+                if position == 1:
+                    new_stop = close - params.stop_atr_mult * atr_val
+                    stop_price = max(stop_price, new_stop)
+                else:
+                    new_stop = close + params.stop_atr_mult * atr_val
+                    stop_price = min(stop_price, new_stop)
 
             if position == 1:
                 # Long trade
                 if low <= stop_price:
                     exit_price = stop_price
                     exit_reason = "stop"
-                elif high >= tp_price:
+                elif params.exit_mode == "fixed_rr" and tp_price is not None and high >= tp_price:
                     exit_price = tp_price
                     exit_reason = "tp"
                 elif (adx < params.adx_exit_threshold) or (close < ema_slow):
@@ -109,7 +133,7 @@ def backtest_symbol(
                 if high >= stop_price:
                     exit_price = stop_price
                     exit_reason = "stop"
-                elif low <= tp_price:
+                elif params.exit_mode == "fixed_rr" and tp_price is not None and low <= tp_price:
                     exit_price = tp_price
                     exit_reason = "tp"
                 elif (adx < params.adx_exit_threshold) or (close > ema_slow):
@@ -135,27 +159,69 @@ def backtest_symbol(
                     )
                 )
 
+                # reset
                 position = 0
-                entry_price = stop_price = tp_price = size = 0.0
+                entry_price = stop_price = 0.0
+                tp_price = None
+                size = 0.0
                 entry_date = None
 
-                equity_curve.append(equity)
-            else:
-                equity_curve.append(equity)
+            equity_curve.append(equity)
 
     equity_series = pd.Series(equity_curve, index=dates)
     stats = calculate_stats(equity_series, trades)
 
+    if verbose and trades:
+        from collections import Counter
+
+        # Holding time in days for each trade
+        holding_days = np.array(
+            [
+                (t.exit_date - t.entry_date).total_seconds() / 86400.0
+                for t in trades
+            ]
+        )
+
+        # Overall average holding time
+        avg_all = float(holding_days.mean())
+        print(f"\nExit breakdown for {symbol}:")
+        print(f"  All trades       : {len(trades):4d} trades, "
+              f"avg holding {avg_all:6.2f} days")
+
+        # Per exit reason: counts + avg holding time
+        reason_counts = Counter(t.exit_reason for t in trades)
+        for reason, count in reason_counts.items():
+            reason_durations = holding_days[
+                [i for i, t in enumerate(trades) if t.exit_reason == reason]
+            ]
+            avg_reason = float(reason_durations.mean()) if len(reason_durations) else 0.0
+            print(
+                f"  {reason:<14s}: {count:4d} trades, "
+                f"avg holding {avg_reason:6.2f} days"
+            )
+
     if plot:
         plt.figure(figsize=(10, 4))
-        plt.plot(equity_series)
+        plt.plot(equity_series, label="Strategy")
+        if show_benchmark and benchmark_curve is not None:
+            # align benchmark to same index (they already match but be safe)
+            bh = benchmark_curve.reindex(equity_series.index).ffill()
+            plt.plot(bh, linestyle="--", alpha=0.8, label="Buy & Hold")
         plt.title(f"Equity curve - {symbol}")
         plt.xlabel("Date")
         plt.ylabel("Equity")
+        if show_benchmark:
+            plt.legend()
         plt.tight_layout()
         plt.show()
 
-    return BacktestResult(symbol=symbol, equity_curve=equity_series, trades=trades, stats=stats)
+    return BacktestResult(
+        symbol=symbol,
+        equity_curve=equity_series,
+        trades=trades,
+        stats=stats,
+        benchmark_curve=benchmark_curve,
+    )
 
 def build_portfolio_result(
     results: Dict[str, BacktestResult],
@@ -206,7 +272,6 @@ def build_portfolio_result(
         stats=stats,
     )
 
-
 def run_backtest_for_default_universe(
     params: StrategyParams | None = None,
     start: str = "2015-01-01",
@@ -214,13 +279,15 @@ def run_backtest_for_default_universe(
     interval: str = "1d",
     plot: bool = False,
     portfolio: bool = True,
+    show_benchmark: bool = False,
 ) -> Dict[str, BacktestResult]:
     """
-    Convenience function to run the strategy on the default set of
-    indices + FX pairs.
+    Run the strategy on the default set of indices + FX pairs.
 
-    If portfolio=True, also builds an equal-weight portfolio equity curve
-    and prints its statistics first.
+    If portfolio=True, also builds an equal-weight portfolio equity curve.
+    If show_benchmark=True:
+      - individual symbol plots include buy-and-hold lines
+      - the portfolio plot overlays buy-and-hold curves for each symbol
     """
     if params is None:
         params = DEFAULT_PARAMS
@@ -238,6 +305,7 @@ def run_backtest_for_default_universe(
             interval=interval,
             plot=plot,
             verbose=True,
+            show_benchmark=show_benchmark,
         )
         results[sym] = result
 
@@ -248,7 +316,28 @@ def run_backtest_for_default_universe(
 
         if plot:
             plt.figure(figsize=(10, 4))
-            plt.plot(portfolio_result.equity_curve)
+            # main portfolio equity line
+            plt.plot(
+                portfolio_result.equity_curve,
+                label="Strategy Portfolio",
+                linewidth=2,
+            )
+
+            if show_benchmark:
+                # overlay each symbol's buy-and-hold curve
+                for sym, res in results.items():
+                    if res.benchmark_curve is None:
+                        continue
+                    bh = res.benchmark_curve.reindex(portfolio_result.equity_curve.index).ffill()
+                    plt.plot(
+                        bh,
+                        linestyle="--",
+                        alpha=0.7,
+                        label=f"{sym} B&H",
+                    )
+
+                plt.legend()
+
             plt.title(f"Equity curve - {portfolio_result.symbol}")
             plt.xlabel("Date")
             plt.ylabel("Equity")

@@ -25,6 +25,7 @@ class BacktestResult:
     equity_curve: pd.Series
     trades: List[Trade]
     stats: Dict[str, float]
+    benchmark_curve: pd.Series | None = None
 
 
 def _annualised_sharpe(equity_curve: pd.Series) -> float:

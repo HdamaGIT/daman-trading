@@ -4,8 +4,8 @@ from typing import List
 
 # Default symbols for testing (you can edit these)
 INDEX_SYMBOLS: List[str] = ["^GSPC", "^NDX", "^FTSE"]  # S&P 500, Nasdaq 100, FTSE 100
-FX_SYMBOLS: List[str] = ["GBPUSD=X", "EURUSD=X", "USDJPY=X"]
-
+# FX_SYMBOLS: List[str] = ["GBPUSD=X", "EURUSD=X", "USDJPY=X"]
+FX_SYMBOLS: List[str] = ["GBPUSD=X", "EURUSD=X"]
 
 @dataclass
 class StrategyParams:
@@ -22,6 +22,7 @@ class StrategyParams:
     tp_atr_mult: float = 1.5
     initial_capital: float = 10_000.0
     risk_per_trade: float = 0.01  # 1%
-
+    exit_mode: str = "fixed_rr"  # "fixed_rr" or "trend_follow"
+    trail_stops: bool = True
 
 DEFAULT_PARAMS = StrategyParams()
