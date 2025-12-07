@@ -1,10 +1,10 @@
 from typing import List, Dict
 
 import matplotlib.pyplot as plt
-import pandas as pd
+import pandas as pd  # <— make sure this is imported
 
-from system_development.engine.data_loader import download_price_data
-from system_development.engine.metrics import (
+from system.system_development.engine.data_loader import download_price_data
+from system.system_development.engine.metrics import (
     Trade,
     BacktestResult,
     calculate_stats,
@@ -21,6 +21,7 @@ def backtest_symbol(
     end: str | None = None,
     interval: str = "1d",
     plot: bool = False,
+    verbose: bool = True,
 ) -> BacktestResult:
     """
     Run the trend-pullback backtest for a single symbol.
@@ -33,6 +34,10 @@ def backtest_symbol(
 
     # Drop initial rows with NaNs in indicators
     df = df.dropna(subset=["EMA_Fast", "EMA_Slow", "RSI", "ATR", "ADX"]).copy()
+
+    if verbose:
+        print(f"\nSignal counts for {symbol}:")
+        print(df["Signal"].value_counts(dropna=False))
 
     equity = params.initial_capital
     equity_curve = []
@@ -90,7 +95,6 @@ def backtest_symbol(
 
             if position == 1:
                 # Long trade
-                # Check stop first, then TP (conservative assumption)
                 if low <= stop_price:
                     exit_price = stop_price
                     exit_reason = "stop"
@@ -151,9 +155,56 @@ def backtest_symbol(
         plt.tight_layout()
         plt.show()
 
-    print_stats(symbol, stats)
-
     return BacktestResult(symbol=symbol, equity_curve=equity_series, trades=trades, stats=stats)
+
+def build_portfolio_result(
+    results: Dict[str, BacktestResult],
+    params: StrategyParams,
+    portfolio_name: str = "PORTFOLIO_EQUAL_WEIGHT",
+) -> BacktestResult:
+    """
+    Combine individual symbol equity curves into a single equal-weight portfolio.
+
+    Method:
+      - Align all equity curves on a common date index
+      - Forward-fill missing values
+      - Normalise each curve to 1.0 at its first value
+      - Take the average across symbols → portfolio normalised curve
+      - Scale by initial_capital to get portfolio equity
+    """
+    if not results:
+        raise ValueError("No results provided to build_portfolio_result")
+
+    # Build DataFrame of equity curves
+    eq_df = pd.DataFrame(
+        {sym: res.equity_curve for sym, res in results.items()}
+    ).sort_index()
+
+    # Forward-fill gaps
+    eq_df = eq_df.ffill().dropna(how="all")
+
+    # Normalise each column to 1 at the start
+    eq_norm = eq_df / eq_df.iloc[0]
+
+    # Equal-weight portfolio
+    port_norm = eq_norm.mean(axis=1)
+
+    initial_capital = params.initial_capital
+    port_equity = port_norm * initial_capital
+
+    # Combine all trades
+    all_trades: List[Trade] = []
+    for res in results.values():
+        all_trades.extend(res.trades)
+
+    stats = calculate_stats(port_equity, all_trades)
+
+    return BacktestResult(
+        symbol=portfolio_name,
+        equity_curve=port_equity,
+        trades=all_trades,
+        stats=stats,
+    )
 
 
 def run_backtest_for_default_universe(
@@ -162,10 +213,14 @@ def run_backtest_for_default_universe(
     end: str | None = None,
     interval: str = "1d",
     plot: bool = False,
+    portfolio: bool = True,
 ) -> Dict[str, BacktestResult]:
     """
     Convenience function to run the strategy on the default set of
     indices + FX pairs.
+
+    If portfolio=True, also builds an equal-weight portfolio equity curve
+    and prints its statistics first.
     """
     if params is None:
         params = DEFAULT_PARAMS
@@ -182,18 +237,26 @@ def run_backtest_for_default_universe(
             end=end,
             interval=interval,
             plot=plot,
+            verbose=True,
         )
         results[sym] = result
 
+    # Portfolio view
+    if portfolio and results:
+        portfolio_result = build_portfolio_result(results, params)
+        print_stats(portfolio_result.symbol, portfolio_result.stats)
+
+        if plot:
+            plt.figure(figsize=(10, 4))
+            plt.plot(portfolio_result.equity_curve)
+            plt.title(f"Equity curve - {portfolio_result.symbol}")
+            plt.xlabel("Date")
+            plt.ylabel("Equity")
+            plt.tight_layout()
+            plt.show()
+
+    # Then print per-symbol stats
+    for sym, res in results.items():
+        print_stats(sym, res.stats)
+
     return results
-
-
-if __name__ == "__main__":
-    # Example: run from daman-trading/system with
-    #   python -m system_development.strategies.trend_pullback_v1.run_backtest
-    run_backtest_for_default_universe(
-        start="2015-01-01",
-        end=None,
-        interval="4H",
-        plot=False,
-    )

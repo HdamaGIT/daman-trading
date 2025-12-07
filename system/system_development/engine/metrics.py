@@ -27,6 +27,36 @@ class BacktestResult:
     stats: Dict[str, float]
 
 
+def _annualised_sharpe(equity_curve: pd.Series) -> float:
+    """
+    Compute an annualised Sharpe ratio from an equity curve.
+    Assumes risk-free rate ~ 0 for simplicity.
+
+    Automatically infers bar frequency from median time delta.
+    """
+    if equity_curve is None or len(equity_curve) < 3:
+        return 0.0
+
+    returns = equity_curve.pct_change().dropna()
+    if returns.std() == 0 or np.isnan(returns.std()):
+        return 0.0
+
+    # Infer period length in days
+    idx = equity_curve.index.to_series()
+    deltas = idx.diff().dropna()
+    if deltas.empty:
+        periods_per_year = 252.0
+    else:
+        median_days = deltas.dt.total_seconds().median() / 86400.0
+        if median_days <= 0 or np.isnan(median_days):
+            periods_per_year = 252.0
+        else:
+            periods_per_year = 252.0 / median_days
+
+    sharpe = (returns.mean() / returns.std()) * np.sqrt(periods_per_year)
+    return float(sharpe)
+
+
 def calculate_stats(equity_curve: pd.Series, trades: List[Trade]) -> dict:
     if equity_curve.empty:
         return {}
@@ -55,6 +85,8 @@ def calculate_stats(equity_curve: pd.Series, trades: List[Trade]) -> dict:
         gross_profit / abs(gross_loss) if gross_loss != 0 else float("inf")
     )
 
+    sharpe_ratio = _annualised_sharpe(equity_curve)
+
     stats = {
         "start_equity": start_equity,
         "end_equity": end_equity,
@@ -65,6 +97,7 @@ def calculate_stats(equity_curve: pd.Series, trades: List[Trade]) -> dict:
         "avg_win": avg_win,
         "avg_loss": avg_loss,
         "profit_factor": profit_factor,
+        "sharpe_ratio": sharpe_ratio,
     }
     return stats
 
@@ -75,4 +108,4 @@ def print_stats(symbol: str, stats: dict) -> None:
         if "pct" in k:
             print(f"{k:20s}: {v:8.2f}%")
         else:
-            print(f"{k:20s}: {v:8.2f}")
+            print(f"{k:20s}: {v:8.4f}")
