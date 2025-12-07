@@ -5,7 +5,7 @@ from typing import List
 # Default symbols for testing (you can edit these)
 INDEX_SYMBOLS: List[str] = ["^GSPC", "^NDX", "^FTSE"]  # S&P 500, Nasdaq 100, FTSE 100
 # FX_SYMBOLS: List[str] = ["GBPUSD=X", "EURUSD=X", "USDJPY=X"]
-FX_SYMBOLS: List[str] = ["GBPUSD=X", "EURUSD=X"]
+FX_SYMBOLS: List[str] = ["EURUSD=X"]
 
 @dataclass
 class StrategyParams:
