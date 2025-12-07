@@ -14,6 +14,7 @@ from system.system_development.engine.metrics import (
 from .config import StrategyParams, DEFAULT_PARAMS, INDEX_SYMBOLS, FX_SYMBOLS
 from .rules import prepare_dataframe
 
+LONG_ONLY_SYMBOLS = [] #["^GSPC", "^NDX", "^FTSE"]
 
 def backtest_symbol(
     symbol: str,
@@ -40,6 +41,9 @@ def backtest_symbol(
 
     # Drop initial rows with NaNs in indicators
     df = df.dropna(subset=["EMA_Fast", "EMA_Slow", "RSI", "ATR", "ADX"]).copy()
+
+    if symbol in LONG_ONLY_SYMBOLS:
+        df.loc[df["Signal"] < 0, "Signal"] = 0
 
     # --- Buy & hold benchmark (same initial capital, day-1 buy and hold) ---
     first_close = float(df["Close"].iloc[0])

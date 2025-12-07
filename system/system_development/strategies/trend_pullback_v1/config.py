@@ -16,12 +16,12 @@ class StrategyParams:
     adx_period: int = 20
     adx_trend_threshold: float = 20.0
     adx_exit_threshold: float = 18.0
-    rsi_oversold: float = 30.0
-    rsi_overbought: float = 70.0
+    rsi_oversold: float = 35.0
+    rsi_overbought: float = 65.0
     stop_atr_mult: float = 1.0
     tp_atr_mult: float = 1.5
     initial_capital: float = 10_000.0
-    risk_per_trade: float = 0.01  # 1%
+    risk_per_trade: float = 0.02  # 2%
     exit_mode: str = "fixed_rr"  # "fixed_rr" or "trend_follow"
     trail_stops: bool = True
 
