@@ -1,5 +1,6 @@
 import pandas as pd
 import yfinance as yf
+from datetime import timedelta
 
 
 def _normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -21,6 +22,22 @@ def _normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _max_chunk_days_for_interval(interval: str) -> int | None:
+    """
+    Return the maximum number of days Yahoo reliably supports in a single
+    request for a given interval. None means 'no chunking needed'.
+    """
+    interval = interval.lower()
+
+    # Daily / weekly / monthly can usually go back as far as you like
+    if interval in ("1d", "5d", "1wk", "1mo", "3mo"):
+        return None
+
+    # Intraday intervals – Yahoo usually caps at ~730 days
+    # We'll be conservative and use 700 days per chunk.
+    return 700
+
+
 def download_price_data(
     symbol: str,
     start: str = "2015-01-01",
@@ -28,7 +45,9 @@ def download_price_data(
     interval: str = "1d",
 ) -> pd.DataFrame:
     """
-    Download OHLCV data for a symbol using yfinance.
+    Download OHLCV data for a symbol using yfinance, with automatic
+    chunking for intraday intervals so that long lookback periods
+    are still supported.
 
     Parameters
     ----------
@@ -37,7 +56,7 @@ def download_price_data(
     start : str
         Start date in 'YYYY-MM-DD' format.
     end : str | None
-        End date. If None, yfinance uses today's date.
+        End date. If None, uses today's date.
     interval : str
         Bar interval (e.g. '1d', '1h', '4h').
 
@@ -47,26 +66,65 @@ def download_price_data(
         DataFrame indexed by datetime with columns:
         ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'].
     """
-    df = yf.download(
-        symbol,
-        start=start,
-        end=end,
-        interval=interval,
-        auto_adjust=False,
-        progress=False,
-        # Just to be explicit; some versions default to group_by='column'
-        group_by="column",
-    )
+    start_dt = pd.to_datetime(start)
+    end_dt = pd.to_datetime(end) if end is not None else pd.Timestamp.today()
+
+    max_days = _max_chunk_days_for_interval(interval)
+
+    if (max_days is None) or ((end_dt - start_dt).days <= max_days):
+        # Single request is fine
+        df = yf.download(
+            symbol,
+            start=start_dt,
+            end=end_dt,
+            interval=interval,
+            auto_adjust=False,
+            progress=False,
+            group_by="column",
+        )
+    else:
+        # Chunk the request into smaller date ranges
+        frames: list[pd.DataFrame] = []
+        chunk_start = start_dt
+        delta = timedelta(days=max_days)
+
+        while chunk_start < end_dt:
+            chunk_end = min(chunk_start + delta, end_dt)
+
+            df_chunk = yf.download(
+                symbol,
+                start=chunk_start,
+                end=chunk_end,
+                interval=interval,
+                auto_adjust=False,
+                progress=False,
+                group_by="column",
+            )
+
+            if not df_chunk.empty:
+                frames.append(df_chunk)
+
+            # next chunk starts at the previous chunk_end
+            chunk_start = chunk_end
+
+        if not frames:
+            raise ValueError(
+                f"No data returned for {symbol} between {start_dt} and {end_dt} "
+                f"with interval={interval}"
+            )
+
+        df = pd.concat(frames)
+        # Remove any duplicate index rows that can occur at chunk boundaries
+        df = df[~df.index.duplicated(keep="last")]
 
     if df.empty:
         raise ValueError(f"No data returned for {symbol} with interval={interval}")
 
+    # Normalise and clean columns as before
     df = _normalise_columns(df)
 
-    # Title-case and select expected columns if they exist
     df.columns = [c.title() for c in df.columns]
 
-    # Some symbols may not have all columns; filter by what's actually there
     wanted = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
     existing = [c for c in wanted if c in df.columns]
     df = df[existing]
