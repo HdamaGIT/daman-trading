@@ -48,7 +48,7 @@ class SystemConfig:
 
 DEFAULT_CONFIG = SystemConfig(
     db_path="trading_live.db",
-    data_provider="dummy",   # change to "yahoo" when you want real data
+    data_provider="yahoo",   # change to "yahoo" when you want real data
     instruments=[
         InstrumentConfig(symbol="ES_FAKE", point_value=1.0),
     ],
@@ -57,7 +57,7 @@ DEFAULT_CONFIG = SystemConfig(
         timeframe="4h",
         capital=10_000.0,
         capital_allocation=1.0,
-        risk_per_trade=0.01,
+        risk_per_trade=0.02,
         mode="paper",
     ),
 )

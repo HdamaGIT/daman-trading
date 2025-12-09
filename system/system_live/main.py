@@ -6,8 +6,8 @@ import argparse
 from datetime import datetime
 from time import sleep
 
-from .config import DEFAULT_CONFIG, SystemConfig
-from .execution.runner import run_once
+from system.system_live.config import DEFAULT_CONFIG, SystemConfig
+from system.system_live.execution.runner import run_once
 
 
 def parse_args() -> argparse.Namespace:
