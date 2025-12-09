@@ -66,6 +66,36 @@ class TradeBot(commands.Bot):
         async def ping(interaction: discord.Interaction):
             await interaction.response.send_message("Pong! 🏓", ephemeral=True)
 
+        @self.tree.command(
+            name="demo_trade",
+            description="Send a sample trade and wait for my decision.",
+        )
+        async def demo_trade_cmd(interaction: discord.Interaction):
+            # Ack the command so Discord doesn't think we've frozen
+            await interaction.response.send_message(
+                "Sending a sample trade to the channel and waiting for your decision...",
+                ephemeral=True,
+            )
+
+            # Run the same flow we had before, but only when you call the command
+            trade = TradeCandidate(
+                symbol="GBPUSD",
+                direction="LONG",
+                size=1.0,
+                entry_price=1.2500,
+                stop_loss=1.2450,
+                take_profit=1.2600,
+                r_multiple=2.0,
+                notes="Sample trade from /demo_trade.",
+            )
+
+            result = await self.ask_trade_confirmation(trade)
+            # Print to the Pi as before
+            log.info("Decision from Discord (via /demo_trade): %s", result)
+            print("\n=== Decision from Discord (/demo_trade) ===")
+            print(result)
+            print("=== End decision ===\n")
+
         # Sync commands just to your guild so they show up quickly
         guild = discord.Object(id=self.settings.guild_id)
         self.tree.copy_global_to(guild=guild)
@@ -73,7 +103,7 @@ class TradeBot(commands.Bot):
         log.info("Synced slash commands to guild %s", self.settings.guild_id)
 
         # Start a demo flow once the bot is ready
-        self.loop.create_task(self.demo_trade_flow())
+        # self.loop.create_task(self.demo_trade_flow())
 
     async def on_ready(self) -> None:
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
