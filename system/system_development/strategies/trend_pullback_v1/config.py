@@ -9,7 +9,7 @@ FX_SYMBOLS: List[str] = ["EURUSD=X"]
 
 @dataclass
 class StrategyParams:
-    ema_fast: int = 20
+    ema_fast: int = 12
     ema_slow: int = 50
     rsi_period: int = 5
     atr_period: int = 14
