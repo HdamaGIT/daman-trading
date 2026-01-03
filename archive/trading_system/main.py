@@ -56,7 +56,7 @@ def run_backtesting(strategy_output: pd.DataFrame) -> Optional[Any]:
 
 def main():
     configure_logging()  # Configure logging at the start
-    logging.info("Main System: Starting the trading system...")
+    logging.info("Main System: Starting the trading trading_system...")
 
     # Load configuration
     try:
